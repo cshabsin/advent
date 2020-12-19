@@ -17,6 +17,8 @@ func main() {
 	}
 	rdr := bufio.NewReader(f)
 	vals := map[int]bool{}
+	// map of possible third numbers to product of first two
+	seeking := map[int]int{}
 	for {
 		line, err := rdr.ReadString('\n')
 		if err == io.EOF {
@@ -29,10 +31,13 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		if vals[val] {
-			fmt.Printf("%d found, answer is: %d\n", val, val*(2020-val))
+		if prod, found := seeking[val]; found {
+			fmt.Printf("%d found, answer is: %d\n", val, val*prod)
 			break
 		}
-		vals[2020-val] = true
+		for first := range vals {
+			seeking[2020-first-val] = first * val
+		}
+		vals[val] = true
 	}
 }
