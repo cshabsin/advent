@@ -11,6 +11,10 @@ import (
 )
 
 func main() {
+	day1b()
+}
+
+func day1a() {
 	f, err := os.Open("input.txt")
 	if err != nil {
 		log.Fatal(err)
