@@ -1,7 +1,0 @@
-package day7
-
-import "fmt"
-
-func main() {
-    fmt.Printf("hello, world")
-}
