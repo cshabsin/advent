@@ -1,0 +1,15 @@
+package main
+
+import (
+       "bufio"
+	"flag"
+	"fmt"
+	"io"
+	"os"
+)
+
+func main() {
+     var input = flag.String("input", "input12.txt", "Input file")
+     flag.Parse()
+
+}

@@ -1,0 +1,38 @@
+package main
+
+import (
+	"bufio"
+	"flag"
+	"fmt"
+	"io"
+	"log"
+	"os"
+	"strconv"
+	"strings"
+)
+
+func main() {
+	var infile = flag.String("infile", "input7.txt", "Input filename")
+	var field = flag.String("field", "a", "Field to evaluate")
+	flag.Parse()
+	f, err := os.Open(*infile)
+	if err != nil {
+		log.Fatal(err)
+	}
+	rdr := bufio.NewReader(f)
+	code_len := 0
+	value_len := 0
+	for {
+		line, err := rdr.ReadString('\n')
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			log.Fatal(err)
+		}
+		current_code_len, current_value_len := count(line)
+		code_len += current_code_len
+		value_len += current_value_len
+	}
+	fmt.Printf("Code: %d\nValue: %d\n", code_len, value_len)
+}
