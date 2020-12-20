@@ -14,13 +14,26 @@ func main() {
 		log.Fatal(err)
 	}
 	passportChan := readPassports(ch)
+	valid := 0
 	for passport := range passportChan {
-		fmt.Println(passport.values)
+		if passport.valid() {
+			valid++
+		}
 	}
+	fmt.Println(valid)
 }
 
 type passport struct {
 	values map[string]string
+}
+
+func (p passport) valid() bool {
+	for _, key := range []string{"byr", "iyr", "eyr", "hgt", "hcl", "ecl", "pid"} {
+		if _, ok := p.values[key]; !ok {
+			return false
+		}
+	}
+	return true
 }
 
 func readPassports(ch chan readinp.Line) chan passport {
