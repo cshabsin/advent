@@ -32,13 +32,32 @@ func main() {
 			log.Fatal(err)
 		}
 	}
+	tot := 1
+	for _, slope := range [][2]int{
+		[2]int{1, 1},
+		[2]int{3, 1},
+		[2]int{5, 1},
+		[2]int{7, 1},
+		[2]int{1, 2},
+	} {
+		ck := b.checkSlope(slope)
+		fmt.Println(slope, ":", ck)
+		tot = tot * ck
+	}
+	fmt.Println("tot:", tot)
+}
+
+func (b board) checkSlope(slope [2]int) int {
 	trees := 0
-	for y := 0; y < b.Len(); y++ {
-		if b.IsTree(y*3, y) {
+	var x, y int
+	for y < b.Len() {
+		if b.IsTree(x, y) {
 			trees++
 		}
+		x += slope[0]
+		y += slope[1]
 	}
-	fmt.Println(trees)
+	return trees
 }
 
 type board struct {
