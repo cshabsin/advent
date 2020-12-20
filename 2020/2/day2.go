@@ -21,6 +21,7 @@ func main() {
 		log.Fatal(err)
 	}
 	validPws := 0
+	validTobogganPws := 0
 	for {
 		line, err := rdr.ReadString('\n')
 		if err == io.EOF {
@@ -47,8 +48,19 @@ func main() {
 		if num >= min && num <= max {
 			validPws++
 		}
+		matches := 0
+		if password[min-1] == char[0] {
+			matches++
+		}
+		if password[max-1] == char[0] {
+			matches++
+		}
+		if matches == 1 {
+			validTobogganPws++
+		}
 	}
 	fmt.Println(validPws)
+	fmt.Println(validTobogganPws)
 }
 
 // count counts the incidence of char in password
