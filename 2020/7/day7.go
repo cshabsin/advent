@@ -19,7 +19,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	bagMap := map[string][]string{}
+	bm := bagMap{}
 	rbm := reverseBagMap{}
 	for line := range ch {
 		if line.Error != nil {
@@ -46,18 +46,28 @@ func main() {
 			subBags = append(subBags, sb)
 		}
 		for _, subBag := range subBags {
-			bagMap[color] = append(bagMap[color], subBag.color)
+			bm[color] = append(bm[color], subBag)
 			rbm[subBag.color] = append(rbm[subBag.color], color)
 		}
 	}
 	canContainShinyGold := map[string]bool{}
 	rbm.findAllChildren(canContainShinyGold, "shiny gold")
 	fmt.Println(len(canContainShinyGold))
+	fmt.Println(bm.countSubBags("shiny gold"))
 }
 
 type subBag struct {
 	num   int
 	color string
+}
+type bagMap map[string][]subBag
+
+func (bm bagMap) countSubBags(color string) int {
+	total := 0
+	for _, subBag := range bm[color] {
+		total += subBag.num * (bm.countSubBags(subBag.color) + 1)
+	}
+	return total
 }
 
 type reverseBagMap map[string][]string
