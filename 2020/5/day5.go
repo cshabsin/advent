@@ -13,7 +13,8 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	var max int
+	var min, max int
+	foundIds := map[int]bool{}
 	for line := range ch {
 		if line.Error != nil {
 			log.Fatal(err)
@@ -24,8 +25,19 @@ func main() {
 		if seatID > max {
 			max = seatID
 		}
+		if min == 0 || seatID < min {
+			min = seatID
+		}
+		foundIds[seatID] = true
 	}
-	fmt.Println(max)
+	for id := min; id < max; id++ {
+		if foundIds[id] {
+			continue
+		}
+		if foundIds[id-1] && foundIds[id+1] {
+			fmt.Println(id)
+		}
+	}
 }
 
 func getRow(line string) int {
