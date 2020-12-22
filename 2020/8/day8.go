@@ -28,5 +28,5 @@ func main() {
 			log.Fatal(err)
 		}
 	}
-	fmt.Println(cons.Run())
+	fmt.Println(cons.Run(0, nil))
 }

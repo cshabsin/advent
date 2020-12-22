@@ -9,13 +9,10 @@ import (
 type Console struct {
 	Instructions []*Instruction
 	Accumulator  int
-	IP           int
-
-	Executed map[int]bool
 }
 
 func New() *Console {
-	return &Console{Executed: map[int]bool{}}
+	return &Console{}
 }
 
 func (cons *Console) ReadInstruction(line string) error {
@@ -27,21 +24,30 @@ func (cons *Console) ReadInstruction(line string) error {
 	return nil
 }
 
-func (cons *Console) Run() int {
+func (cons *Console) Run(ip int, executed map[int]bool) int {
+	if executed == nil {
+		executed = map[int]bool{}
+	}
 	for {
-		if cons.Executed[cons.IP] {
+		if executed[ip] {
 			return cons.Accumulator
 		}
-		cons.Executed[cons.IP] = true
-		instruction := cons.Instructions[cons.IP]
+		executed[ip] = true
+		instruction := cons.Instructions[ip]
 		switch instruction.Operation {
 		case ACC:
 			cons.Accumulator += instruction.Argument
-			cons.IP++
+			ip++
 		case JMP:
-			cons.IP += instruction.Argument
+			if ip+1 == len(cons.Instructions) {
+				return cons.Accumulator
+			}
+			ip += instruction.Argument
 		case NOP:
-			cons.IP++
+			if ip+instruction.Argument == len(cons.Instructions) {
+				return cons.Accumulator
+			}
+			ip++
 		}
 	}
 }
