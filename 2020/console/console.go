@@ -8,7 +8,6 @@ import (
 
 type Console struct {
 	Instructions []*Instruction
-	Accumulator  int
 }
 
 func New() *Console {
@@ -24,28 +23,47 @@ func (cons *Console) ReadInstruction(line string) error {
 	return nil
 }
 
-func (cons *Console) Run(ip int, executed map[int]bool) int {
+func copyMap(m map[int]bool) map[int]bool {
+	m2 := map[int]bool{}
+	for i, b := range m {
+		m2[i] = b
+	}
+	return m2
+}
+
+// Returns accumulator before end, and boolean "terminates".
+func (cons *Console) Run(ip int, executed map[int]bool, changed bool) (int, bool) {
+	var acc int
 	if executed == nil {
 		executed = map[int]bool{}
+	} else {
+		executed = copyMap(executed)
 	}
 	for {
+		if ip == len(cons.Instructions) {
+			return acc, true
+		}
 		if executed[ip] {
-			return cons.Accumulator
+			return acc, false
 		}
 		executed[ip] = true
 		instruction := cons.Instructions[ip]
 		switch instruction.Operation {
 		case ACC:
-			cons.Accumulator += instruction.Argument
+			acc += instruction.Argument
 			ip++
 		case JMP:
-			if ip+1 == len(cons.Instructions) {
-				return cons.Accumulator
+			if !changed {
+				if subAcc, terminates := cons.Run(ip+1, executed, true); terminates {
+					return acc + subAcc, true
+				}
 			}
 			ip += instruction.Argument
 		case NOP:
-			if ip+instruction.Argument == len(cons.Instructions) {
-				return cons.Accumulator
+			if !changed {
+				if subAcc, terminates := cons.Run(ip+instruction.Argument, executed, true); terminates {
+					return acc + subAcc, true
+				}
 			}
 			ip++
 		}
