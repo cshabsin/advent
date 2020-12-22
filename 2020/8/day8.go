@@ -3,15 +3,11 @@ package main
 import (
 	"fmt"
 	"log"
-	"regexp"
 	"strings"
 
 	"github.com/cshabsin/advent/2020/console"
 	"github.com/cshabsin/advent/common/readinp"
 )
-
-var bagRuleRegex = regexp.MustCompile(`^([a-z ]*) bags contain (.*)$`)
-var subbagRegex = regexp.MustCompile(`(\d) ([a-z ]*) bag`)
 
 func main() {
 	ch, err := readinp.Read("input.txt")
