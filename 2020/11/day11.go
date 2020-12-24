@@ -23,8 +23,6 @@ func main() {
 			log.Fatal(err)
 		}
 	}
-	board.advance()
-	fmt.Println(board)
 	for {
 		changed := board.advance()
 		if !changed {
@@ -106,7 +104,7 @@ func (b board) numCols() int {
 
 func (b board) at(r, c int) cell {
 	if r < 0 || c < 0 || r >= b.numRows() || c >= b.numCols() {
-		return floor
+		return chair
 	}
 	return b[r][c]
 }
@@ -129,6 +127,34 @@ func (b board) countNeighbors(r, c int) (count int) {
 	return
 }
 
+func (b board) countSeenNeighbors(r, c int) (count int) {
+	for dr := -1; dr <= 1; dr++ {
+		for dc := -1; dc <= 1; dc++ {
+			if dr == 0 && dc == 0 {
+				continue
+			}
+			mul := 1
+		loop:
+			for {
+				at := b.at(r+mul*dr, c+mul*dc)
+				switch at {
+				case floor:
+					mul++
+					continue
+				case chair:
+					break loop
+				case occupied:
+					count++
+					break loop
+				default:
+					fmt.Println("at: ", at)
+				}
+			}
+		}
+	}
+	return
+}
+
 func (b *board) advance() (changed bool) {
 	newBoard := b.copy()
 	for r := 0; r < b.numRows(); r++ {
@@ -136,8 +162,8 @@ func (b *board) advance() (changed bool) {
 			if b.at(r, c) == floor {
 				continue
 			}
-			n := b.countNeighbors(r, c)
-			if b.isOccupied(r, c) && n >= 4 {
+			n := b.countSeenNeighbors(r, c)
+			if b.isOccupied(r, c) && n >= 5 {
 				changed = true
 				newBoard[r][c] = chair
 			} else if !b.isOccupied(r, c) && n == 0 {
