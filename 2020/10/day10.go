@@ -14,7 +14,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	joltages := map[int]bool{}
+	joltages := map[int]bool{0: true}
 	maxJ := 0
 	for line := range ch {
 		if line.Error != nil {
@@ -42,4 +42,52 @@ func main() {
 	}
 	fmt.Println(diffCounts)
 	fmt.Println(diffCounts[0] * diffCounts[2])
+
+	fmt.Println(allPermutations(joltages, maxJ+3))
+
+	for i := 1; i < 15; i++ {
+		fmt.Println(i, ":", calcPermsHard(i))
+	}
+}
+
+var perms = []int{1, 1, 2, 4}
+
+func calcPerms(runLength int) int {
+	if runLength == 0 {
+		return 1
+	}
+	if len(perms) < runLength {
+		for i := len(perms); i < runLength; i++ {
+			perms = append(perms, perms[i-1]+perms[i-2]+perms[i-3])
+		}
+	}
+	return perms[runLength-1]
+}
+
+func calcPermsHard(runLength int) int {
+	if runLength <= 1 {
+		return 1
+	}
+	if runLength == 2 {
+		return 2
+	}
+	if runLength == 3 {
+		return 4
+	}
+	return calcPermsHard(runLength-1) + calcPermsHard(runLength-2) + calcPermsHard(runLength-3)
+}
+
+func allPermutations(joltages map[int]bool, maxJ int) int {
+	runLength := 0
+	permutations := 1
+	for i := 0; i <= maxJ; i++ {
+		if joltages[i] {
+			runLength++
+		} else {
+			fmt.Println("runlength", runLength, "to", i-1, "perms", calcPermsHard(runLength-1))
+			permutations *= calcPermsHard(runLength - 1)
+			runLength = 0
+		}
+	}
+	return permutations
 }
