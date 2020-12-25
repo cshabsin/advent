@@ -30,6 +30,10 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	day13a(minTime, buses)
+}
+
+func day13a(minTime int, buses map[int]int) {
 	t := minTime
 	id := 0
 outer:
@@ -48,17 +52,20 @@ outer:
 	fmt.Println("wait*id", (t-minTime)*id)
 }
 
-func getBuses(line string) (map[int]bool, error) {
-	buses := map[int]bool{}
+func getBuses(line string) (map[int]int, error) {
+	buses := map[int]int{}
+	i := 0
 	for _, s := range strings.Split(line, ",") {
 		if s == "x" {
+			i++
 			continue
 		}
 		bus, err := strconv.Atoi(s)
 		if err != nil {
 			return nil, err
 		}
-		buses[bus] = true
+		buses[bus] = i
+		i++
 	}
 	return buses, nil
 }
