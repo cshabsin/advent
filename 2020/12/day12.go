@@ -14,14 +14,26 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	s := ship{}
+	s := relship{}
+	s.move("E10")
+	s.move("N1")
 	for line := range ch {
 		if line.Error != nil {
 			log.Fatal(err)
 		}
-		s.move(strings.TrimSpace(*line.Contents))
+		if err := s.move(strings.TrimSpace(*line.Contents)); err != nil {
+			log.Fatal(err)
+		}
 	}
 	fmt.Println(s)
+	fmt.Println(abs(s.x) + abs(s.y))
+}
+
+func abs(v int) int {
+	if v < 0 {
+		return -v
+	}
+	return v
 }
 
 type dir int
@@ -108,5 +120,41 @@ func (s *ship) forward(val int) error {
 	}
 	s.x += dx * val
 	s.y += dy * val
+	return nil
+}
+
+type relship struct {
+	x, y   int
+	wx, wy int
+}
+
+func (rs *relship) move(mv string) error {
+	val, err := strconv.Atoi(mv[1:len(mv)])
+	if err != nil {
+		return err
+	}
+	switch mv[0] {
+	case 'N':
+		rs.wy -= val
+	case 'S':
+		rs.wy += val
+	case 'E':
+		rs.wx += val
+	case 'W':
+		rs.wx -= val
+	case 'L':
+		for val > 0 {
+			rs.wx, rs.wy = rs.wy, -rs.wx
+			val -= 90
+		}
+	case 'R':
+		for val > 0 {
+			rs.wx, rs.wy = -rs.wy, rs.wx
+			val -= 90
+		}
+	case 'F':
+		rs.x += rs.wx * val
+		rs.y += rs.wy * val
+	}
 	return nil
 }
