@@ -33,6 +33,11 @@ func main() {
 	}
 	// day13a(minTime, buses)
 	fmt.Println(buses)
+	v := sieveBuses(buses, 991*449*41*37*29, 6820035189)
+	fmt.Println(v)
+}
+
+func sieveBuses(buses map[int]int, overrideMult, overrideFirst int) int {
 	var busesSorted []int
 	max := 1
 	for mod := range buses {
@@ -41,23 +46,25 @@ func main() {
 	}
 	sort.Sort(sort.IntSlice(busesSorted))
 	var ch chan int
-	//for mod, a := range buses {
 	for i := len(busesSorted) - 1; i >= 0; i-- {
 		mod := busesSorted[i]
 		a := buses[mod]
 		if ch == nil {
 			fmt.Println("kicking off multiples", mod, a)
-			ch = multiples(mod, 286806184116, max)
-			//ch = multiples(737033053717-286806184116, 286806184116, max)
-			//ch = multiples(23*29*37*41*449*991, 286806184116, max)
-			// both give the wrong answer 1245164100630881
+			if overrideFirst == 0 {
+				overrideFirst = mod - a
+			}
+			if overrideMult == 0 {
+				overrideMult = mod
+			}
+			ch = multiples(overrideMult, overrideFirst, max)
 			continue
 		}
 		fmt.Println("kicking off sieve", mod, a)
 		ch = sieve(ch, mod, a)
 	}
 	val := <-ch
-	fmt.Println(val)
+	return val
 }
 
 func multiples(mod, a, max int) chan int {
@@ -80,10 +87,7 @@ func sieve(in chan int, mod, a int) chan int {
 	out := make(chan int)
 	go func() {
 		for val := range in {
-			if val%mod == a%mod {
-				if mod < 30 {
-					fmt.Println(val, "=", a, "mod", mod)
-				}
+			if (val+a)%mod == 0 {
 				out <- val
 			}
 		}
