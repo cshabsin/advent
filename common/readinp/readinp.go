@@ -4,12 +4,18 @@ import (
 	"bufio"
 	"io"
 	"os"
+	"strings"
 )
 
 // Line is the value yielded by read - it either contains contents or an error.
 type Line struct {
 	Contents *string
 	Error    error
+}
+
+// Value returns the trimmed contents of the line. Crashes on an error line.
+func (l Line) Value() string {
+	return strings.TrimSpace(*l.Contents)
 }
 
 // Read starts a goroutine that yields lines on the output channel.
