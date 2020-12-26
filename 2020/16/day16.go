@@ -48,7 +48,7 @@ func main() {
 	fmt.Println(total)
 
 	ans := 1
-	for _, f := range []int{12, 6, 7, 18, 13, 14} {
+	for _, f := range []int{12, 6, 7, 18, 13, 14} { // fields extracted manually from buggy output
 		ans *= myTicket.fields[f]
 	}
 	fmt.Println("ans:", ans)
