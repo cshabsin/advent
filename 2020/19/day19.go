@@ -39,11 +39,6 @@ func main() {
 		}
 	}
 	fmt.Println(count)
-
-	fmt.Println(rules.matchTerminal(120, "b"))
-	for m := range rules.match(120, "ba") {
-		fmt.Println("ba", m)
-	}
 }
 
 type rule struct {
@@ -150,6 +145,8 @@ func (r ruleMap) match(rule int, toMatch string) chan string {
 				for a2Remainder := range r.match(r[rule].a2, a1Remainder) {
 					out <- a2Remainder
 				}
+			} else {
+				out <- a1Remainder
 			}
 		}
 		if r[rule].b1 != -1 {
@@ -158,6 +155,8 @@ func (r ruleMap) match(rule int, toMatch string) chan string {
 					for b2Remainder := range r.match(r[rule].b2, b1Remainder) {
 						out <- b2Remainder
 					}
+				} else {
+					out <- b1Remainder
 				}
 			}
 		}
