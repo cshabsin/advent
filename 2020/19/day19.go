@@ -42,10 +42,10 @@ func main() {
 }
 
 type rule struct {
-	index   int
-	literal string
-	a1, a2  int
-	b1, b2  int // -1 if n/a
+	index      int
+	literal    string
+	a1, a2     int
+	b1, b2, b3 int // -1 if n/a
 }
 
 func (r rule) String() string {
@@ -60,6 +60,9 @@ func (r rule) String() string {
 		s += fmt.Sprintf(" | %d", r.b1)
 		if r.b2 != -1 {
 			s += fmt.Sprintf(" %d", r.b2)
+			if r.b3 != -1 {
+				s += fmt.Sprintf(" %d", r.b3)
+			}
 		}
 	}
 	return s
@@ -77,16 +80,17 @@ func makeRule(line string) (*rule, bool) {
 		}, false
 	}
 	subRules := strings.Split(rest, "|")
-	a1, a2 := getPair(subRules[0])
+	a1, a2, _ := getPair(subRules[0])
 	b1 := -1
 	b2 := -1
+	b3 := -1
 	if len(subRules) > 1 {
-		b1, b2 = getPair(subRules[1])
+		b1, b2, b3 = getPair(subRules[1])
 	}
 	if len(subRules) > 2 {
 		log.Fatalf("more than 2 subrules: %q", line)
 	}
-	return &rule{index, "", a1, a2, b1, b2}, false
+	return &rule{index, "", a1, a2, b1, b2, b3}, false
 }
 
 func getIndex(line string) (int, string) {
@@ -98,7 +102,7 @@ func getIndex(line string) (int, string) {
 	return index, strings.TrimSpace(fields[1])
 }
 
-func getPair(subRules string) (int, int) {
+func getPair(subRules string) (int, int, int) {
 	fields := strings.Split(strings.TrimSpace(subRules), " ")
 	a1, err := strconv.Atoi(strings.TrimSpace(fields[0]))
 	if err != nil {
@@ -111,10 +115,17 @@ func getPair(subRules string) (int, int) {
 			log.Fatal(err)
 		}
 	}
+	a3 := -1
 	if len(fields) > 2 {
+		a3, err = strconv.Atoi(strings.TrimSpace(fields[2]))
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+	if len(fields) > 3 {
 		log.Fatalf("more than two fields: %q", subRules)
 	}
-	return a1, a2
+	return a1, a2, a3
 }
 
 type ruleMap map[int]*rule
@@ -142,9 +153,13 @@ func (r ruleMap) match(rule int, toMatch string) chan string {
 		// Do the a's
 		for a1Remainder := range r.match(r[rule].a1, toMatch) {
 			if r[rule].a2 != -1 {
+				if a1Remainder == "" {
+					continue
+				}
 				for a2Remainder := range r.match(r[rule].a2, a1Remainder) {
 					out <- a2Remainder
 				}
+
 			} else {
 				out <- a1Remainder
 			}
@@ -152,8 +167,20 @@ func (r ruleMap) match(rule int, toMatch string) chan string {
 		if r[rule].b1 != -1 {
 			for b1Remainder := range r.match(r[rule].b1, toMatch) {
 				if r[rule].b2 != -1 {
+					if b1Remainder == "" {
+						continue
+					}
 					for b2Remainder := range r.match(r[rule].b2, b1Remainder) {
-						out <- b2Remainder
+						if r[rule].b3 != -1 {
+							if b2Remainder == "" {
+								continue
+							}
+							for b3Remainder := range r.match(r[rule].b3, b2Remainder) {
+								out <- b3Remainder
+							}
+						} else {
+							out <- b2Remainder
+						}
 					}
 				} else {
 					out <- b1Remainder
