@@ -61,34 +61,49 @@ func main() {
 
 type tile struct {
 	pixels [][]bool
+	edges  []int
 }
 
 func readTile(ch chan readinp.Line) *tile {
-	pixels := make([][]bool, 10)
+	allVals := make([][]bool, 10)
 	for i := 0; i < 10; i++ {
 		line, err := read(ch)
 		if err != nil {
 			log.Fatal(err)
 		}
-		pixelLine := make([]bool, 10)
+		allValLine := make([]bool, 10)
 		for j, c := range line {
-			pixelLine[j] = c == '#'
+			allValLine[j] = c == '#'
 		}
-		pixels[i] = pixelLine
+		allVals[i] = allValLine
+	}
+	var edges []int
+	for i := 0; i < 4; i++ {
+		edges = append(edges, readEdge(allVals, i))
+	}
+
+	var pixels [][]bool
+	for i := 1; i < 9; i++ {
+		pixels = append(pixels, allVals[i][1:8])
 	}
 
 	return &tile{
 		pixels: pixels,
+		edges:  edges,
 	}
 }
 
 func (t tile) readEdge(e int) int {
+	return t.edges[e%4]
+}
+
+func readEdge(allVals [][]bool, e int) int {
 	switch e {
 	case 0: // top
 		total := 0
 		for j := 0; j < 10; j++ {
 			total *= 2
-			if t.pixels[0][j] {
+			if allVals[0][j] {
 				total++
 			}
 		}
@@ -97,7 +112,7 @@ func (t tile) readEdge(e int) int {
 		total := 0
 		for j := 9; j >= 0; j-- {
 			total *= 2
-			if t.pixels[j][0] {
+			if allVals[j][0] {
 				total++
 			}
 		}
@@ -106,7 +121,7 @@ func (t tile) readEdge(e int) int {
 		total := 0
 		for j := 9; j >= 0; j-- {
 			total *= 2
-			if t.pixels[9][j] {
+			if allVals[9][j] {
 				total++
 			}
 		}
@@ -115,7 +130,7 @@ func (t tile) readEdge(e int) int {
 		total := 0
 		for j := 0; j < 10; j++ {
 			total *= 2
-			if t.pixels[j][9] {
+			if allVals[j][9] {
 				total++
 			}
 		}
