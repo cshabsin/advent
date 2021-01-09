@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"regexp"
+	"sort"
 	"strings"
 
 	"github.com/cshabsin/advent/common/readinp"
@@ -76,6 +77,47 @@ func main() {
 		}
 	}
 	fmt.Println(count)
+
+	fmt.Println(canonicalizeAllergens(possibleAllergens))
+}
+
+// allergen -> set of ingredients
+func canonicalizeAllergens(possibleAllergens map[string]map[string]bool) string {
+	var sortedAllergens []string
+	allergenMap := map[string]string{}
+	for {
+		if len(possibleAllergens) == 0 {
+			break
+		}
+		var allergen, ingredient string
+		for aIter, ingredientMap := range possibleAllergens {
+			if len(ingredientMap) == 1 {
+				allergen = aIter
+				ingredient = getOnlyEntry(ingredientMap)
+				break
+			}
+		}
+		allergenMap[allergen] = ingredient
+		sortedAllergens = append(sortedAllergens, allergen)
+		delete(possibleAllergens, allergen)
+		for _, ingredientMap := range possibleAllergens {
+			delete(ingredientMap, ingredient)
+		}
+	}
+	fmt.Println(allergenMap)
+	sort.Slice(sortedAllergens, func(i, j int) bool { return sortedAllergens[i] < sortedAllergens[j] })
+	var ingredientList []string
+	for _, allergen := range sortedAllergens {
+		ingredientList = append(ingredientList, allergenMap[allergen])
+	}
+	return strings.Join(ingredientList, ",")
+}
+
+func getOnlyEntry(ingredientMap map[string]bool) string {
+	for k := range ingredientMap {
+		return k
+	}
+	return ""
 }
 
 type entry struct {
