@@ -39,39 +39,40 @@ func main() {
 			allAllergens[allergen] = true
 		}
 	}
-	ingEntries := map[string]*ingredientEntry{}
-	for ingredient := range allIngredents {
-		ingEntries[ingredient] = createIngredientEntry(ingredient, allAllergens)
-	}
-	for _, entry := range entries {
-		for ingredient := range entry.ingredientSet {
-			ingEntries[ingredient].disqualifyFromAllergens(entry.allergens)
-		}
-	}
-	allergyFree := map[string]bool{}
-	for _, ent := range ingEntries {
-		anyAllergen := false
-		for _, allergic := range ent.possibleAllergens {
-			if allergic {
-				anyAllergen = true
-				break
+
+	// allergen -> set of ingredients
+	possibleAllergens := map[string]map[string]bool{}
+	for _, e := range entries {
+		for a := range e.allergens {
+			newPossibleAllergens := map[string]bool{}
+			if aMap, ok := possibleAllergens[a]; ok {
+				for ing := range aMap {
+					if e.ingredientSet[ing] {
+						newPossibleAllergens[ing] = true
+					}
+				}
+			} else {
+				newPossibleAllergens = e.ingredientSet
 			}
-		}
-		if !anyAllergen {
-			allergyFree[ent.name] = true
+			possibleAllergens[a] = newPossibleAllergens
 		}
 	}
+	fmt.Println(possibleAllergens)
+
+	allPossibleAllergens := map[string]bool{}
+	for _, ingMap := range possibleAllergens {
+		for ing := range ingMap {
+			allPossibleAllergens[ing] = true
+		}
+	}
+	fmt.Println(allPossibleAllergens)
+
 	count := 0
 	for _, ent := range entries {
-		foundAllergyFree := false
 		for ing := range ent.ingredientSet {
-			if allergyFree[ing] {
-				foundAllergyFree = true
-				break
+			if !allPossibleAllergens[ing] {
+				count++
 			}
-		}
-		if foundAllergyFree {
-			count++
 		}
 	}
 	fmt.Println(count)
@@ -80,27 +81,6 @@ func main() {
 type entry struct {
 	ingredientSet map[string]bool
 	allergens     map[string]bool
-}
-
-type ingredientEntry struct {
-	name              string
-	possibleAllergens map[string]bool
-}
-
-func (ie *ingredientEntry) disqualifyFromAllergens(allergens map[string]bool) {
-	for a := range ie.possibleAllergens {
-		if !allergens[a] {
-			ie.possibleAllergens[a] = false
-		}
-	}
-}
-
-func createIngredientEntry(ingredient string, allAllergens map[string]bool) *ingredientEntry {
-	possibleAllergens := map[string]bool{}
-	for allergen := range allAllergens {
-		possibleAllergens[allergen] = true
-	}
-	return &ingredientEntry{ingredient, possibleAllergens}
 }
 
 var lineRe = regexp.MustCompile("^([a-z ]*) \\(contains ([a-z ,]*)\\)$")
