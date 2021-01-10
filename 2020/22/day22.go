@@ -126,15 +126,13 @@ func newRecursiveGame() recursiveGame {
 	return recursiveGame{map[uint64]map[uint64]bool{}}
 }
 
-func (r *recursiveGame) addRound(h1, h2 uint64) {
+func (r *recursiveGame) addRound(h1, h2 uint64) bool {
+	rc := r.previousRounds[h1][h2]
 	if r.previousRounds[h1] == nil {
 		r.previousRounds[h1] = map[uint64]bool{}
 	}
 	r.previousRounds[h1][h2] = true
-	if r.previousRounds[h2] == nil {
-		r.previousRounds[h2] = map[uint64]bool{}
-	}
-	r.previousRounds[h2][h1] = true
+	return rc
 }
 
 // play returns the winning player (0 or 1) and their score
@@ -145,20 +143,17 @@ func (r *recursiveGame) play(players []deck) (int, int) {
 		} else if len(players[1]) == 0 {
 			return 0, score(players[0])
 		}
-		h1 := players[0].hash()
-		h2 := players[1].hash()
-		if r.previousRounds[h1][h2] || r.previousRounds[h2][h1] {
+		if r.addRound(players[0].hash(), players[1].hash()) {
 			fmt.Println("winner by loop:", players[0])
 			return 0, score(players[0])
 		}
-		r.addRound(h1, h2)
 
 		c0, d0 := players[0].pop()
 		c1, d1 := players[1].pop()
 		var w int
 		if len(d0) >= c0 && len(d1) >= c1 {
 			subgame := newRecursiveGame()
-			w, _ = subgame.play([]deck{d0, d1})
+			w, _ = subgame.play([]deck{d0[0:c0], d1[0:c1]})
 		} else {
 			if c0 > c1 {
 				w = 0
