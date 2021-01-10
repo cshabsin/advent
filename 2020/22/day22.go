@@ -42,16 +42,14 @@ func main() {
 	// })
 	// fmt.Println("---")
 	out := play(players)
-	fmt.Println(out)
 	score := 0
 	for i := range out {
 		score += out[i] * (len(out) - i)
 	}
-	fmt.Println(score)
+	fmt.Println("regular game score:", score)
 }
 
 func play(players [][]int) []int {
-	fmt.Println(players)
 	for {
 		if len(players[0]) == 0 {
 			return players[1]
@@ -59,7 +57,6 @@ func play(players [][]int) []int {
 			return players[0]
 		}
 		players = playRound(players)
-		fmt.Println(players)
 	}
 }
 
