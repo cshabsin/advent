@@ -14,20 +14,16 @@ func main() {
 	}
 	fmt.Println(coord("nwswnese"))
 	fmt.Println(coord("nwwswee"))
-	values := map[int]map[int]bool{}
+	b := board{}
 	for line := range ch {
 		if line.Error != nil {
 			log.Fatal(line.Error)
 		}
-		x, y := coord(line.Value())
-		if values[x] == nil {
-			values[x] = map[int]bool{}
-		}
-		values[x][y] = !values[x][y]
+		b.Set(coord(line.Value()))
 	}
-	fmt.Println(values)
+	fmt.Println(b.values)
 	count := 0
-	for _, row := range values {
+	for _, row := range b.values {
 		for _, on := range row {
 			if on {
 				count++
@@ -68,4 +64,31 @@ func coord(line string) (int, int) {
 		}
 	}
 	return x, y
+}
+
+type board struct {
+	minX, minY, maxX, maxY int
+	values                 map[int]map[int]bool
+}
+
+func (b *board) Set(x, y int) {
+	if b.values == nil {
+		b.values = map[int]map[int]bool{}
+	}
+	if b.values[x] == nil {
+		b.values[x] = map[int]bool{}
+	}
+	b.values[x][y] = !b.values[x][y]
+	if b.minX > x {
+		b.minX = x
+	}
+	if b.minY > y {
+		b.minY = y
+	}
+	if b.maxX < x {
+		b.maxX = x
+	}
+	if b.maxY < y {
+		b.maxY = y
+	}
 }
