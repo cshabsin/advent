@@ -191,3 +191,38 @@ func TestFind(t *testing.T) {
 		})
 	}
 }
+
+func TestInsert(t *testing.T) {
+	testcases := []struct {
+		desc  string
+		board boardType
+		loc   int
+		val   []int
+		want  []int
+	}{
+		{
+			desc:  "basic",
+			board: b13,
+			loc:   0,
+			val:   []int{5},
+			want:  []int{5, 1, 3},
+		},
+		{
+			desc:  "basic2",
+			board: b13,
+			loc:   1,
+			val:   []int{5},
+			want:  []int{1, 3, 5},
+		},
+	}
+	for _, tc := range testcases {
+		t.Run(tc.desc, func(t *testing.T) {
+			tc.board.Insert(tc.loc, tc.val)
+			for i, v := range tc.want {
+				if got := tc.board.Get(i); got != v {
+					t.Errorf("tc.board.Insert value at %d got %d, want %d (board %v)", i, got, v, tc.board)
+				}
+			}
+		})
+	}
+}

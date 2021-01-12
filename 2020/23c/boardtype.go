@@ -176,7 +176,9 @@ func (b boardType) String() string {
 }
 
 func (b boardType) Render(highlight int) string {
-	highlight, _ = b.indexAndOffsetForLocation(highlight)
+	if highlight != -1 {
+		highlight, _ = b.indexAndOffsetForLocation(highlight)
+	}
 	bld := strings.Builder{}
 	bld.WriteString("{")
 	for i, ent := range b.entries {
