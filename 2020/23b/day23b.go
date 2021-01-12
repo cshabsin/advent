@@ -3,21 +3,47 @@ package main
 import (
 	"fmt"
 	"log"
+	"strings"
 )
 
+// investigating:
+// move 6 {[{8 0 0} {6 0 0} {4 0 0} {3 0 0} {2 0 0} {5 0 0} {7 0 0} {9 0 0} {1 0 0} {0 10 1000000}]}
+// looking for destination 6 (extract:  [9 1 10] )
+// &{[{8 0 0} {6 0 0} {4 0 0} {3 0 0} {2 0 0} {5 0 0} {7 0 0} {0 11 1000000} {8 0 0} {6 0 0} {9 0 0} {1 0 0} {10 0 0} {4 0 0} {3 0 0} {2 0 0} {5 0 0} {7 0 0} {9 0 0} {1 0 0} {0 10 1000000}]}
+
 func main() {
+	// board := boardType{
+	// 	entries: []boardEntry{
+	// 		c(3), c(8), c(9), c(1), c(2), c(5), c(4), c(6), c(7),
+	// 		boardEntry{rangeBegin: 10, rangeEnd: 1000000},
+	// 	},
+	// }
+	// var current int
+	// for i := 0; i < 10000000; i++ {
+	// 	board.move(current)
+	// 	current++
+	// }
 	board := boardType{
 		entries: []boardEntry{
-			c(3), c(8), c(9), c(1), c(2), c(5), c(4), c(6), c(7),
-			boardEntry{rangeBegin: 10, rangeEnd: 1000000},
+			c(8), c(6), c(4), c(3), c(2), c(5), c(7), c(9), c(1), boardEntry{rangeBegin: 10, rangeEnd: 1000000},
 		},
 	}
-	fmt.Println(board.len())
-	var current int
-	for i := 0; i < 10000000; i++ {
-		board.move(current)
-		current++
+	fmt.Println(board)
+	c := newCursor(&board)
+	for {
+		if c.contains(6) {
+			c.seek(6)
+			break
+		}
+		c.next()
 	}
+	fmt.Println(c)
+	c.advance()
+	fmt.Println(c)
+	extract := c.extract3()
+	fmt.Println(board)
+	fmt.Println(c, extract)
+	//board.move(6)
 }
 
 type boardType struct {
@@ -53,6 +79,30 @@ func (b boardType) get(index int) int {
 	return 0
 }
 
+func (b boardType) String() string {
+	return b.Render(-1)
+}
+
+func (b boardType) Render(highlight int) string {
+	bld := strings.Builder{}
+	bld.WriteString("{")
+	for i, ent := range b.entries {
+		if i != 0 {
+			bld.WriteString(" ")
+		}
+		if i == highlight {
+			bld.WriteString("(")
+		}
+		bld.WriteString(fmt.Sprintf("%v", ent))
+		if i == highlight {
+			bld.WriteString(")")
+		}
+	}
+	bld.WriteString("}")
+	return bld.String()
+
+}
+
 type cursor struct {
 	b         *boardType
 	entIndex  int
@@ -74,6 +124,14 @@ func (c cursor) entry() *boardEntry {
 
 func (c cursor) contains(index int) bool {
 	return index >= c.i && index <= c.iEnd
+}
+
+func (c cursor) offset() int {
+	return c.i + c.entOffset
+}
+
+func (c cursor) String() string {
+	return fmt.Sprintf("%d-%d(%d) %s", c.i, c.iEnd, c.entOffset, c.b.Render(c.entIndex))
 }
 
 func (c *cursor) next() {
@@ -120,42 +178,42 @@ func (c *cursor) advance() {
 	}
 }
 
-func (c *cursor) write(val int) {
-	if c.entry().card != 0 {
-		c.entry().card = val
-		return
-	}
-	// we need to split the range.
-	var before, after *boardEntry
-	if c.entOffset == 1 {
-		before = &boardEntry{card: c.entry().rangeBegin}
-	} else if c.entOffset != 0 {
-		begin := c.entry().rangeBegin
-		before = &boardEntry{
-			rangeBegin: begin,
-			rangeEnd:   begin + c.entOffset - 1,
-		}
-	}
+// func (c *cursor) write(val int) {
+// 	if c.entry().card != 0 {
+// 		c.entry().card = val
+// 		return
+// 	}
+// 	// we need to split the range.
+// 	var before, after *boardEntry
+// 	if c.entOffset == 1 {
+// 		before = &boardEntry{card: c.entry().rangeBegin}
+// 	} else if c.entOffset != 0 {
+// 		begin := c.entry().rangeBegin
+// 		before = &boardEntry{
+// 			rangeBegin: begin,
+// 			rangeEnd:   begin + c.entOffset - 1,
+// 		}
+// 	}
 
-	var newEntries []boardEntry
-	for i := 0; i < c.entIndex; i++ {
-		newEntries = append(newEntries, c.b.entries[i])
-	}
-	if before != nil {
-		newEntries = append(newEntries, *before)
-		c.entIndex++ // we've inserted one before the current entry now
-	}
-	newEntries = append(newEntries, boardEntry{card: val})
-	c.iEnd = c.i
-	c.entOffset = 0
-	if after != nil {
-		newEntries = append(newEntries, *after)
-	}
-	for i := c.entIndex + 1; i < len(c.b.entries); i++ {
-		newEntries = append(newEntries, c.b.entries[i])
-	}
-	c.b.entries = newEntries
-}
+// 	var newEntries []boardEntry
+// 	for i := 0; i < c.entIndex; i++ {
+// 		newEntries = append(newEntries, c.b.entries[i])
+// 	}
+// 	if before != nil {
+// 		newEntries = append(newEntries, *before)
+// 		c.entIndex++ // we've inserted one before the current entry now
+// 	}
+// 	newEntries = append(newEntries, boardEntry{card: val})
+// 	c.iEnd = c.i
+// 	c.entOffset = 0
+// 	if after != nil {
+// 		newEntries = append(newEntries, *after)
+// 	}
+// 	for i := c.entIndex + 1; i < len(c.b.entries); i++ {
+// 		newEntries = append(newEntries, c.b.entries[i])
+// 	}
+// 	c.b.entries = newEntries
+// }
 
 // extract3 removes next 3 cards, returns them, leaves cursor pointing at the same spot (the next card after the third removed card).
 func (c *cursor) extract3() []int {
@@ -163,34 +221,47 @@ func (c *cursor) extract3() []int {
 	for i := 0; i < c.entIndex; i++ {
 		newEntries = append(newEntries, c.b.entries[i])
 	}
+	fmt.Println("after initial population:", boardType{newEntries})
 
 	var extract []int
+	currentEntry := c.entIndex
 	newEntIndex := c.entIndex
 	for len(extract) < 3 {
-		if c.entry().card != 0 {
+		if c.b.entries[currentEntry].card != 0 {
 			extract = append(extract, c.entry().card)
-			c.next()
+			currentEntry++
+			if currentEntry == len(c.b.entries) {
+				currentEntry = 0
+			}
 			continue
 		}
 		if c.entOffset != 0 {
-			newEntries = append(newEntries, boardEntry{
-				rangeBegin: c.entry().rangeBegin,
-				rangeEnd:   c.entry().rangeBegin + c.entOffset - 1,
-			})
+			newEnt := boardEntry{
+				rangeBegin: c.b.entries[currentEntry].rangeBegin,
+				rangeEnd:   c.b.entries[currentEntry].rangeBegin + c.entOffset - 1,
+			}
+			newEntries = append(newEntries, newEnt)
 			newEntIndex++ // inserting before the new location
+			fmt.Println("new entry", newEnt, "newEntIndex incremented", newEntIndex)
 		}
 		for len(extract) < 3 && c.entry().rangeBegin+c.entOffset <= c.entry().rangeEnd {
 			extract = append(extract, c.entry().rangeBegin+c.entOffset)
 			c.entOffset++
 		}
-		if c.entry().rangeBegin+c.entOffset <= c.entry().rangeEnd {
-			newEntries = append(newEntries, boardEntry{
-				rangeBegin: c.entry().rangeBegin + c.entOffset,
-				rangeEnd:   c.entry().rangeEnd,
-			})
+		if len(extract) >= 3 {
+			break
 		}
 		c.next()
 	}
+	if c.entry().rangeBegin+c.entOffset <= c.entry().rangeEnd {
+		newEntries = append(newEntries, boardEntry{
+			rangeBegin: c.entry().rangeBegin + c.entOffset,
+			rangeEnd:   c.entry().rangeEnd,
+		})
+		c.entOffset = 0
+		c.entIndex++
+	}
+	fmt.Println("after extract, before suffix:", boardType{newEntries})
 
 	newEntries = append(newEntries, c.b.entries[c.entIndex:len(c.b.entries)]...)
 	c.b.entries = newEntries
@@ -239,10 +310,12 @@ func (b *boardType) move(current int) {
 	// cursor now points at current
 	destinationVal := c.get() - 1 // tentative
 	c.advance()
+	fmt.Println("after advance", c.entIndex)
 	extract := c.extract3()
 	destinationVal = getDestination(destinationVal, extract)
 	fmt.Println("looking for destination", destinationVal, "(extract: ", extract, ")")
 	c.seekTo(destinationVal)
+	fmt.Println("after seekTo", c)
 	c.advance()
 	c.insert(extract)
 	fmt.Printf("%v\n", c.b)
