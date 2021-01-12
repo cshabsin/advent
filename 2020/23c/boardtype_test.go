@@ -91,6 +91,37 @@ func TestNextIndexAndOffset(t *testing.T) {
 			wantIndex:  0,
 			wantOffset: 1,
 		},
+		{
+			desc: "range middle",
+			board: boardType{[]boardEntry{
+				boardEntry{rangeBegin: 1, rangeEnd: 3},
+			}},
+			index:      0,
+			offset:     1,
+			wantIndex:  0,
+			wantOffset: 2,
+		},
+		{
+			desc: "range wraparound",
+			board: boardType{[]boardEntry{
+				boardEntry{rangeBegin: 1, rangeEnd: 3},
+			}},
+			index:      0,
+			offset:     2,
+			wantIndex:  0,
+			wantOffset: 0,
+		},
+		{
+			desc: "after range",
+			board: boardType{[]boardEntry{
+				boardEntry{rangeBegin: 1, rangeEnd: 3},
+				c(5),
+			}},
+			index:      0,
+			offset:     2,
+			wantIndex:  1,
+			wantOffset: 0,
+		},
 	}
 	for _, tc := range testcases {
 		t.Run(tc.desc, func(t *testing.T) {
