@@ -12,16 +12,25 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println(coord("nwswnese"))
-	fmt.Println(coord("nwwswee"))
+
 	b := board{}
+	b.Toggle(coord(""))
+	b.Toggle(coord("e"))
+	fmt.Println(b)
+	b.Day()
+	fmt.Println(b)
+
+	b = board{}
 	for line := range ch {
 		if line.Error != nil {
 			log.Fatal(line.Error)
 		}
-		b.Set(coord(line.Value()))
+		b.Toggle(coord(line.Value()))
 	}
 	fmt.Println(b.values)
+	for i := 0; i < 100; i++ {
+		b.Day()
+	}
 	count := 0
 	for _, row := range b.values {
 		for _, on := range row {
@@ -71,7 +80,7 @@ type board struct {
 	values                 map[int]map[int]bool
 }
 
-func (b *board) Set(x, y int) {
+func (b *board) Toggle(x, y int) {
 	if b.values == nil {
 		b.values = map[int]map[int]bool{}
 	}
@@ -91,4 +100,67 @@ func (b *board) Set(x, y int) {
 	if b.maxY < y {
 		b.maxY = y
 	}
+}
+
+func (b board) Get(x, y int) bool {
+	if b.values == nil {
+		return false
+	}
+	if b.values[x] == nil {
+		return false
+	}
+	return b.values[x][y]
+}
+
+func (b *board) Day() {
+	newBoard := board{}
+	for y := b.minY - 1; y <= b.maxY+1; y++ {
+		for x := b.minX - 1; x <= b.maxX+1; x++ {
+			n := b.countNeighbors(x, y)
+			if b.Get(x, y) {
+				if n == 1 || n == 2 {
+					newBoard.Toggle(x, y)
+				}
+			} else {
+				if n == 2 {
+					newBoard.Toggle(x, y)
+				}
+			}
+		}
+	}
+	b.minX = newBoard.minX
+	b.minY = newBoard.minY
+	b.maxX = newBoard.maxX
+	b.maxY = newBoard.maxY
+	b.values = newBoard.values
+}
+
+type d struct {
+	dx, dy int
+}
+
+func makeD(dir string) d {
+	x, y := coord(dir)
+	return d{x, y}
+}
+
+func (b board) countNeighbors(x, y int) int {
+	n := 0
+	vals := []d{
+		makeD("nw"),
+		makeD("ne"),
+		makeD("e"),
+		makeD("se"),
+		makeD("sw"),
+		makeD("w"),
+	}
+	for _, val := range vals {
+		if val.dx == 0 && val.dy == 0 {
+			continue
+		}
+		if b.Get(x+val.dx, y+val.dy) {
+			n++
+		}
+	}
+	return n
 }
