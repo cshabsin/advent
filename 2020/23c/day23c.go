@@ -10,27 +10,22 @@ func main() {
 			boardEntry{rangeBegin: 10, rangeEnd: 1000000},
 		},
 	}
-	var current int
+	currentCard := board.Get(0)
 	for i := 0; i < 10000000; i++ {
-		fmt.Println(current, ":", board.Render(current))
+		current := board.Find(currentCard)
+		// fmt.Println(board.Render(current))
 		move(board, current)
-		current++
-		if current%1000 == 0 {
-			fmt.Println(current, len(board.entries))
+		if i%1000 == 0 {
+			fmt.Println(i, len(board.entries))
 		}
+		currentCard = board.Get(board.Find(currentCard) + 1)
 	}
 	fmt.Println(board)
 }
 
-// TODO, found bug:
-// 3 : {7 3 6 (5) 8 4 2 9 1 10-1000000}
-// 4 : {7 3 8 4 (2) 6 5 9 1 10-1000000}
-// in this move, current should move all the way over to the position of the 9
-// card, since it is clockwise of the previous "current" cup.
-
 func move(b *boardType, current int) {
 	destinationVal := b.Get(current) - 1
-	extract, current := b.Extract3(current + 1)
+	extract := b.Extract3(current + 1)
 	destinationVal = getDestination(destinationVal, extract)
 	// fmt.Println("seeking", destinationVal)
 	b.Insert(b.Find(destinationVal)+1, extract)

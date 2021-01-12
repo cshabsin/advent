@@ -112,25 +112,22 @@ func (b boardType) entriesAfter(index, offset int) []boardEntry {
 // extract3 deletes 3 cards at given location, and returns the card values and
 // the new location equivalent to the previous location (in the event that
 // cards were deleted at the start of the board, shifting the location).
-func (b *boardType) Extract3(loc int) ([]int, int) {
+func (b *boardType) Extract3(loc int) []int {
 	var foundZero bool
 	firstIndex, firstOffset := b.indexAndOffsetForLocation(loc)
 	index, offset := firstIndex, firstOffset
 	var vals []int
-	var shift int // number of entries deleted from start (to subtract from loc)
 	for i := 0; i < 3; i++ {
 		vals = append(vals, b.entries[index].Get(offset))
-		if index == 0 && offset == 0 {
+		if index == 0 && offset == 0 && i != 0 {
 			foundZero = true
-		}
-		if foundZero {
-			shift++
 		}
 		index, offset = b.nextIndexAndOffset(index, offset)
 	}
 	var newEntries []boardEntry
 	// if we found a 0 then we skip the entry(ies) at the beginning.
 	if foundZero {
+		// NOTE: this fails if there is only a single range entry in the board.
 		if b.entries[index].card == 0 {
 			newEntry := boardEntry{
 				rangeBegin: b.entries[index].rangeBegin + offset,
@@ -157,7 +154,7 @@ func (b *boardType) Extract3(loc int) ([]int, int) {
 		}
 	}
 	b.entries = newEntries
-	return vals, loc - shift // TODO what's the location?
+	return vals // TODO what's the location?
 }
 
 func (b *boardType) Insert(loc int, vals []int) {

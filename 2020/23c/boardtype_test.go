@@ -8,9 +8,17 @@ var (
 	b1to3 = boardType{[]boardEntry{
 		boardEntry{rangeBegin: 1, rangeEnd: 3},
 	}}
+	b1to10 = boardType{[]boardEntry{
+		boardEntry{rangeBegin: 1, rangeEnd: 10},
+	}}
 	b1235 = boardType{[]boardEntry{
 		boardEntry{rangeBegin: 1, rangeEnd: 3},
 		c(5),
+	}}
+	b1to798 = boardType{[]boardEntry{
+		boardEntry{rangeBegin: 1, rangeEnd: 7},
+		c(9),
+		c(8),
 	}}
 )
 
@@ -253,4 +261,43 @@ func TestInsert(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestExtract3(t *testing.T) {
+	testcases := []struct {
+		desc  string
+		board boardType
+		loc   int
+		want  []int
+	}{
+		{
+			desc:  "basic",
+			board: b1to10,
+			loc:   0,
+			want:  []int{1, 2, 3},
+		},
+		{
+			desc:  "basic2",
+			board: b1to10,
+			loc:   1,
+			want:  []int{2, 3, 4},
+		},
+		{
+			desc:  "basic3",
+			board: b1to798,
+			loc:   7,
+			want:  []int{9, 8, 1},
+		},
+	}
+	for _, tc := range testcases {
+		t.Run(tc.desc, func(t *testing.T) {
+			got := tc.board.Extract3(tc.loc)
+			for i, v := range tc.want {
+				if got[i] != v {
+					t.Errorf("tc.board.Insert value at %d got %d, want %d (board %v)", i, got[i], v, tc.board)
+				}
+			}
+		})
+	}
+
 }
