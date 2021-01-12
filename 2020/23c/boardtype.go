@@ -78,6 +78,37 @@ func (b boardType) Find(card int) int {
 	return loc
 }
 
+func (b boardType) entriesUpTo(index, offset int) []boardEntry {
+	var newEntries []boardEntry
+	newEntries = append(newEntries, b.entries[0:index]...)
+	if offset != 0 {
+		newEntries = append(newEntries, boardEntry{
+			rangeBegin: b.entries[index].rangeBegin,
+			rangeEnd:   b.entries[index].rangeBegin + offset - 1,
+		})
+	}
+	return newEntries
+}
+
+func (b boardType) entriesAfter(index, offset int) []boardEntry {
+	var newEntries []boardEntry
+	if b.entries[index].card != 0 {
+		newEntries = append(newEntries, boardEntry{card: b.entries[index].card})
+	} else {
+		newEntry := boardEntry{
+			rangeBegin: b.entries[index].rangeBegin + offset,
+			rangeEnd:   b.entries[index].rangeEnd,
+		}
+		if newEntry.rangeEnd >= newEntry.rangeBegin {
+			newEntries = append(newEntries, newEntry)
+		}
+	}
+	if index+1 < len(b.entries) {
+		newEntries = append(newEntries, b.entries[index+1:len(b.entries)]...)
+	}
+	return newEntries
+}
+
 // extract3 deletes 3 cards at given location, and returns the card values and
 // the new location equivalent to the previous location (in the event that
 // cards were deleted at the start of the board, shifting the location).
@@ -117,25 +148,10 @@ func (b *boardType) Extract3(loc int) ([]int, int) {
 			})
 		}
 	} else {
-		newEntries = append(newEntries, b.entries[0:firstIndex]...)
-		if firstOffset != 0 {
-			newEntries = append(newEntries, boardEntry{
-				rangeBegin: b.entries[firstIndex].rangeBegin,
-				rangeEnd:   b.entries[firstIndex].rangeBegin + firstOffset - 1,
-			})
-		}
+		newEntries = b.entriesUpTo(firstIndex, firstOffset)
 		if !(index == 0 && offset == 0) {
 			// there is content to copy after the end of the extract
-			newEntry := boardEntry{
-				rangeBegin: b.entries[index].rangeBegin + offset,
-				rangeEnd:   b.entries[index].rangeEnd,
-			}
-			// if newEntry.rangeEnd >= newEntry.rangeBegin {
-			newEntries = append(newEntries, newEntry)
-			// }
-			if index+1 < len(b.entries) {
-				newEntries = append(newEntries, b.entries[index+1:len(b.entries)]...)
-			}
+			newEntries = append(newEntries, b.entriesAfter(index, offset)...)
 		}
 	}
 	b.entries = newEntries
@@ -143,7 +159,16 @@ func (b *boardType) Extract3(loc int) ([]int, int) {
 }
 
 func (b *boardType) Insert(loc int, vals []int) {
-
+	index, offset := b.indexAndOffsetForLocation(loc)
+	index, offset = b.nextIndexAndOffset(index, offset)
+	newEntries := b.entriesUpTo(index, offset)
+	for _, val := range vals {
+		newEntries = append(newEntries, c(val))
+	}
+	if !(index == 0 && offset == 0) {
+		newEntries = append(newEntries, b.entriesAfter(index, offset)...)
+	}
+	b.entries = newEntries
 }
 
 func (b boardType) String() string {
@@ -151,6 +176,7 @@ func (b boardType) String() string {
 }
 
 func (b boardType) Render(highlight int) string {
+	highlight, _ = b.indexAndOffsetForLocation(highlight)
 	bld := strings.Builder{}
 	bld.WriteString("{")
 	for i, ent := range b.entries {
