@@ -140,6 +140,8 @@ func (b *boardType) Extract3(loc int) ([]int, int) {
 			newEntries = append(newEntries, newEntry)
 			// }
 		}
+		// TODO: found bug: this crashes when firstIndex, firstOffset == 0.
+		// consider possible solution: in loop above, add i != 0 to the foundZero clause?
 		newEntries = append(newEntries, b.entries[index+1:firstIndex]...)
 		if firstOffset != 0 {
 			newEntries = append(newEntries, boardEntry{

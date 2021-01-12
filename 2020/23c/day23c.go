@@ -12,7 +12,7 @@ func main() {
 	}
 	var current int
 	for i := 0; i < 10000000; i++ {
-		// fmt.Println(current, ":", board.Render(current))
+		fmt.Println(current, ":", board.Render(current))
 		move(board, current)
 		current++
 		if current%1000 == 0 {
@@ -21,6 +21,12 @@ func main() {
 	}
 	fmt.Println(board)
 }
+
+// TODO, found bug:
+// 3 : {7 3 6 (5) 8 4 2 9 1 10-1000000}
+// 4 : {7 3 8 4 (2) 6 5 9 1 10-1000000}
+// in this move, current should move all the way over to the position of the 9
+// card, since it is clockwise of the previous "current" cup.
 
 func move(b *boardType, current int) {
 	destinationVal := b.Get(current) - 1
