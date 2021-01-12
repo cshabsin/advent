@@ -3,8 +3,8 @@ package main
 import "fmt"
 
 func main() {
-	//board := boardType{7, 8, 4, 2, 3, 5, 9, 1, 6}
-	board := boardType{3, 8, 9, 1, 2, 5, 4, 6, 7}
+	board := boardType{7, 8, 4, 2, 3, 5, 9, 1, 6}
+	//board := boardType{3, 8, 9, 1, 2, 5, 4, 6, 7}
 	for i := 10; i <= 1000000; i++ {
 		board = append(board, i)
 	}

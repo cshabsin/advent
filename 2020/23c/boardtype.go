@@ -160,14 +160,11 @@ func (b *boardType) Extract3(loc int) ([]int, int) {
 
 func (b *boardType) Insert(loc int, vals []int) {
 	index, offset := b.indexAndOffsetForLocation(loc)
-	index, offset = b.nextIndexAndOffset(index, offset)
 	newEntries := b.entriesUpTo(index, offset)
 	for _, val := range vals {
 		newEntries = append(newEntries, c(val))
 	}
-	if !(index == 0 && offset == 0) {
-		newEntries = append(newEntries, b.entriesAfter(index, offset)...)
-	}
+	newEntries = append(newEntries, b.entriesAfter(index, offset)...)
 	b.entries = newEntries
 }
 

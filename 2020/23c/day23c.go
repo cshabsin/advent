@@ -12,7 +12,7 @@ func main() {
 	}
 	var current int
 	for i := 0; i < 10000000; i++ {
-		fmt.Println(current, ":", board.Render(current))
+		// fmt.Println(current, ":", board.Render(current))
 		move(board, current)
 		current++
 		if current%1000 == 0 {
@@ -26,8 +26,8 @@ func move(b *boardType, current int) {
 	destinationVal := b.Get(current) - 1
 	extract, current := b.Extract3(current + 1)
 	destinationVal = getDestination(destinationVal, extract)
-	fmt.Println("seeking", destinationVal)
-	b.Insert(b.Find(destinationVal), extract)
+	// fmt.Println("seeking", destinationVal)
+	b.Insert(b.Find(destinationVal)+1, extract)
 }
 
 func getDestination(val int, extract []int) int {

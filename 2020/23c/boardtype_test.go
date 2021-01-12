@@ -212,7 +212,35 @@ func TestInsert(t *testing.T) {
 			board: b13,
 			loc:   1,
 			val:   []int{5},
-			want:  []int{1, 3, 5},
+			want:  []int{1, 5, 3},
+		},
+		{
+			desc:  "range1",
+			board: b1to3,
+			loc:   0,
+			val:   []int{5},
+			want:  []int{5, 1, 2, 3},
+		},
+		{
+			desc:  "range2",
+			board: b1to3,
+			loc:   1,
+			val:   []int{5},
+			want:  []int{1, 5, 2, 3},
+		},
+		{
+			desc:  "range3",
+			board: b1to3,
+			loc:   2,
+			val:   []int{5},
+			want:  []int{1, 2, 5, 3},
+		},
+		{
+			desc:  "complex",
+			board: b1235,
+			loc:   3,
+			val:   []int{7, 8},
+			want:  []int{1, 2, 3, 7, 8, 5},
 		},
 	}
 	for _, tc := range testcases {
