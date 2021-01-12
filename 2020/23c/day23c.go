@@ -13,11 +13,11 @@ func main() {
 	currentCard := board.Get(0)
 	for i := 0; i < 10000000; i++ {
 		current := board.Find(currentCard)
-		// fmt.Println(board.Render(current))
+		fmt.Println(i, len(board.entries), board.Render(current))
 		move(board, current)
-		if i%1000 == 0 {
-			fmt.Println(i, len(board.entries))
-		}
+		// if i%1000 == 0 {
+		// fmt.Println(i, len(board.entries))
+		// }
 		currentCard = board.Get(board.Find(currentCard) + 1)
 	}
 	fmt.Println(board)
