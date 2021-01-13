@@ -20,22 +20,29 @@ type Tile struct {
 
 // Read reads a tile from the given readinp channel and returns it.
 func Read(ch chan readinp.Line) (*Tile, error) {
-	decl, err := ReadLine(ch)
-	if err != nil {
-		return nil, err
+	var lines []string
+	for i := 0; i < 11; i++ {
+		line, err := ReadLine(ch)
+		if err != nil {
+			return nil, err
+		}
+		lines = append(lines, line)
 	}
-	tid, err := strconv.Atoi(strings.TrimSuffix(strings.TrimPrefix(decl, "Tile "), ":"))
+	return parseLines(lines)
+}
+
+func parseLines(lines []string) (*Tile, error) {
+	tid, err := strconv.Atoi(strings.TrimSuffix(strings.TrimPrefix(lines[0], "Tile "), ":"))
 	if err != nil {
 		return nil, err
 	}
 	allVals := make([][]bool, 10)
 	for i := 0; i < 10; i++ {
-		line, err := ReadLine(ch)
 		if err != nil {
 			log.Fatal(err)
 		}
 		allValLine := make([]bool, 10)
-		for j, c := range line {
+		for j, c := range lines[i+1] {
 			allValLine[j] = c == '#'
 		}
 		allVals[i] = allValLine
@@ -57,7 +64,8 @@ func Read(ch chan readinp.Line) (*Tile, error) {
 	}, nil
 }
 
-func (t Tile) Id() int {
+// ID returns the ID of the tile.
+func (t Tile) ID() int {
 	return t.id
 }
 

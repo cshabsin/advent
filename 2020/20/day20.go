@@ -24,7 +24,7 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		tid := nextTile.Id()
+		tid := nextTile.ID()
 		tiles[tid] = nextTile
 		if err == io.EOF {
 			break
