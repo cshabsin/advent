@@ -1,14 +1,24 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"sync"
+)
+
+var findStarts map[int]*card
 
 func main() {
 	//	c(7), c(8), c(4), c(2), c(3), c(5), c(9), c(1), c(6),
 	head := &card{7, nil}
 	tail := head.append(8).append(4).append(2).append(3).append(5).append(9).append(1).append(6)
+	findStarts = map[int]*card{7: head}
 	for i := 10; i <= 1000000; i++ {
 		tail = tail.append(i)
+		if i%100000 == 0 {
+			findStarts[i] = tail
+		}
 	}
+
 	tail.next = head
 	fmt.Println(head.len())
 	current := head
@@ -53,12 +63,46 @@ func (c *card) len() int {
 }
 
 func (c *card) find(val int) *card {
-	for {
-		if c.val == val {
-			return c
-		}
-		c = c.next
+	var rc *card
+	m := &sync.Mutex{}
+	var wg sync.WaitGroup
+	wg.Add(len(findStarts))
+	for first, firstCard := range findStarts {
+		go func(first int, firstCard *card) {
+			defer wg.Done()
+			if first == val {
+				m.Lock()
+				rc = firstCard
+				m.Unlock()
+				return
+			}
+			cur := firstCard.next
+			i := 0
+			for {
+				i++
+				if i%50 == 0 {
+					m.Lock()
+					if rc != nil {
+						m.Unlock()
+						return
+					}
+					m.Unlock()
+				}
+				if cur.val == val {
+					m.Lock()
+					rc = cur
+					m.Unlock()
+					return
+				}
+				if findStarts[cur.val] != nil {
+					return
+				}
+				cur = cur.next
+			}
+		}(first, firstCard)
 	}
+	wg.Wait()
+	return rc
 }
 
 func getDestination(val int, extract []int) int {
