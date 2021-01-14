@@ -12,11 +12,13 @@ import (
 
 // Tile is a tile from day 20 of advent of code 2020.
 type Tile struct {
-	id       int
-	pixels   [][]bool
-	edges    []int
-	matches  []bool
-	rotation int
+	id           int
+	pixels       [][]bool
+	edges        []int
+	matches      []bool
+	rotation     int
+	neighbors    []int // same indeces as edges, 0 for none
+	numNeighbors int
 }
 
 // Read reads a tile from the given readinp channel and returns it.
@@ -98,6 +100,42 @@ func (t *Tile) Rotate(n int) {
 	t.rotation = (t.rotation + n) % 4
 }
 
+// SetNeighborFromEdgeMap sets the neighbors from a collected map of edge value to matching tiles.
+func (t *Tile) SetNeighborFromEdgeMap(edgeMap map[int][]int) {
+	neighborCount := 0
+	t.neighbors = make([]int, 4)
+	for i := 0; i < 4; i++ {
+		edge := t.ReadEdge(i)
+		edgeMatches := edgeMap[edge]
+		if len(edgeMatches) == 1 {
+			continue // no neighbor in that direction
+		}
+		for _, neighbor := range edgeMatches {
+			if neighbor != t.id {
+				neighborCount++
+				t.neighbors[i] = neighbor
+				break
+			}
+		}
+	}
+	t.numNeighbors = neighborCount
+}
+
+func (t Tile) NumNeighbors() int {
+	return t.numNeighbors
+}
+
+func (t Tile) GetNeighbor(e int) int {
+	if t.neighbors == nil {
+		return -1
+	}
+	return t.neighbors[(e-t.rotation+4)%4]
+}
+
+func (t Tile) HasNeighbor(e int) bool {
+	return t.GetNeighbor(e) != 0
+}
+
 func (t Tile) String() string {
 	leftEdge := strconv.Itoa(t.ReadEdge(1))
 	leftDual := fmt.Sprintf("(%d)", EdgeDual(t.ReadEdge(1)))
@@ -109,7 +147,7 @@ func (t Tile) String() string {
 		spacer += " "
 	}
 	var b strings.Builder
-	b.WriteString(fmt.Sprintf("%d%s%d (%d)\n", t.id, spacer, t.ReadEdge(0), EdgeDual(t.ReadEdge(0))))
+	b.WriteString(fmt.Sprintf("%d%s%d (%d) ^ %d\n", t.id, spacer, t.ReadEdge(0), EdgeDual(t.ReadEdge(0)), t.GetNeighbor(0)))
 	for y := 0; y < 8; y++ {
 		if y == 3 {
 			b.WriteString(leftEdge + " ")
@@ -120,9 +158,9 @@ func (t Tile) String() string {
 		}
 		for x := 0; x < 8; x++ {
 			if t.Get(x, y) {
-				b.WriteString("x ")
+				b.WriteString("X ")
 			} else {
-				b.WriteString("  ")
+				b.WriteString(". ")
 			}
 		}
 		if y == 3 {
@@ -132,7 +170,7 @@ func (t Tile) String() string {
 		}
 		b.WriteString("\n")
 	}
-	b.WriteString(fmt.Sprintf("%s%s%d (%d)\n", spacer, spacer, t.ReadEdge(2), EdgeDual(t.ReadEdge(2))))
+	b.WriteString(fmt.Sprintf("<- %d  %d (%d) v %d -> %d\n", t.GetNeighbor(1), t.ReadEdge(2), EdgeDual(t.ReadEdge(2)), t.GetNeighbor(2), t.GetNeighbor(3)))
 	return b.String()
 }
 

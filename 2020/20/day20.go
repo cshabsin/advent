@@ -44,29 +44,25 @@ func main() {
 	}
 	// cornerTiles := day20a(tiles, edgeMap)
 
-	numMatches := map[int][]int{} // number of matches for each tile's four edges
-	for tileNum, tile := range tiles {
+	for _, tile := range tiles {
 		for i := 0; i < 4; i++ {
-			numMatches[tileNum] = append(numMatches[tileNum], len(edgeMap[tile.ReadEdge(i)])-1)
+			tile.SetNeighborFromEdgeMap(edgeMap)
 		}
 	}
 	tileGrid := [12][12]*tile.Tile{}
-	for tile, matchList := range numMatches {
-		matchCount := 0
-		for _, matches := range matchList {
-			matchCount += matches
+	for _, tile := range tiles {
+		if tile.NumNeighbors() != 2 {
+			continue
 		}
-		if matchCount == 2 {
-			tileGrid[0][0] = tiles[tile]
-			if matchList[0] != 0 && matchList[1] != 0 {
-				tiles[tile].Rotate(2)
-			} else if matchList[0] != 0 && matchList[3] != 0 {
-				tiles[tile].Rotate(3)
-			} else if matchList[2] != 0 && matchList[1] != 0 {
-				tiles[tile].Rotate(1)
-			}
-			break
+		tileGrid[0][0] = tile
+		if tile.HasNeighbor(0) && tile.HasNeighbor(1) {
+			tile.Rotate(2)
+		} else if tile.HasNeighbor(0) && tile.HasNeighbor(3) {
+			tile.Rotate(3)
+		} else if tile.HasNeighbor(2) && tile.HasNeighbor(1) {
+			tile.Rotate(1)
 		}
+		break
 	}
 
 	// top left is set, now fill in the rest.
@@ -123,7 +119,6 @@ func main() {
 				break
 			}
 			if usedTiles[match] {
-				fmt.Println(numMatches[tileGrid[col][row-1].ID()])
 				log.Fatalf("no unused match tile for topEdge %d (%d, %d)\n%v\n%v", topEdge, row, col, tileGrid[col][row-1], tileGrid[0][0])
 			}
 			usedTiles[match] = true
