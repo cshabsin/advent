@@ -49,6 +49,16 @@ func main() {
 			tile.SetNeighborFromEdgeMap(edgeMap)
 		}
 	}
+	fmt.Println(tiles[2803])
+	tiles[2803].Rotate(1)
+	fmt.Println(tiles[2803])
+	tiles[2803].Rotate(1)
+	fmt.Println(tiles[2803])
+	tiles[2803].Rotate(1)
+	fmt.Println(tiles[2803])
+	tiles[2803].Rotate(1)
+	fmt.Println(tiles[2803])
+
 	tileGrid := [12][12]*tile.Tile{}
 	for _, tile := range tiles {
 		if tile.NumNeighbors() != 2 {

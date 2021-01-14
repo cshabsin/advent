@@ -91,7 +91,7 @@ func (t Tile) Get(x, y int) bool {
 	case 3:
 		x, y = y, 7-x
 	}
-	return t.pixels[x][y]
+	return t.pixels[y][x]
 }
 
 // Rotate rotates the tile counterclockwise n times.
