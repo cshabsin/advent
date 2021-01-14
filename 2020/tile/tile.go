@@ -1,6 +1,7 @@
 package tile
 
 import (
+	"fmt"
 	"io"
 	"log"
 	"strconv"
@@ -72,7 +73,11 @@ func (t Tile) ID() int {
 // ReadEdge reads the binary value of the bits on the given edge.
 // edges are: 0(top), 1(left), 2(bottom), 3(right)
 func (t Tile) ReadEdge(e int) int {
-	return t.edges[(e+t.rotation)%4]
+	if len(t.edges) != 4 {
+		log.Fatalf("Tile %d has too few edges", t.id)
+	}
+	// fmt.Println("reading edge", e, "with rotation", t.rotation, "as", (e-t.rotation+4)%4, ":", t.edges[(e-t.rotation+4)%4])
+	return t.edges[(e-t.rotation+4)%4]
 }
 
 func (t Tile) Get(x, y int) bool {
@@ -87,21 +92,29 @@ func (t Tile) Get(x, y int) bool {
 	return t.pixels[x][y]
 }
 
+// Rotate rotates the tile counterclockwise n times.
 func (t *Tile) Rotate(n int) {
+	// fmt.Println("rotating", n, "to", (t.rotation+n)%4)
 	t.rotation = (t.rotation + n) % 4
 }
 
 func (t Tile) String() string {
 	leftEdge := strconv.Itoa(t.ReadEdge(1))
+	leftDual := fmt.Sprintf("(%d)", EdgeDual(t.ReadEdge(1)))
 	spacer := " "
-	for range leftEdge {
+	for len(leftEdge) < len(leftDual) {
+		leftEdge += " "
+	}
+	for range leftDual {
 		spacer += " "
 	}
 	var b strings.Builder
-	b.WriteString(strconv.Itoa(t.id) + spacer + strconv.Itoa(t.ReadEdge(0)) + "\n")
+	b.WriteString(fmt.Sprintf("%d%s%d (%d)\n", t.id, spacer, t.ReadEdge(0), EdgeDual(t.ReadEdge(0))))
 	for y := 0; y < 8; y++ {
 		if y == 3 {
 			b.WriteString(leftEdge + " ")
+		} else if y == 4 {
+			b.WriteString(leftDual + " ")
 		} else {
 			b.WriteString(spacer)
 		}
@@ -114,10 +127,12 @@ func (t Tile) String() string {
 		}
 		if y == 3 {
 			b.WriteString(" " + strconv.Itoa(t.ReadEdge(3)))
+		} else if y == 4 {
+			b.WriteString(fmt.Sprintf(" (%d)", EdgeDual(t.ReadEdge(3))))
 		}
 		b.WriteString("\n")
 	}
-	b.WriteString(spacer + spacer + strconv.Itoa(t.ReadEdge(2)) + "\n")
+	b.WriteString(fmt.Sprintf("%s%s%d (%d)\n", spacer, spacer, t.ReadEdge(2), EdgeDual(t.ReadEdge(2))))
 	return b.String()
 }
 
