@@ -20,7 +20,7 @@ func (l Line) Value() string {
 
 // Read starts a goroutine that yields lines on the output channel.
 func Read(filename string) (chan Line, error) {
-	f, err := os.Open("input.txt")
+	f, err := os.Open(filename)
 	if err != nil {
 		return nil, err
 	}

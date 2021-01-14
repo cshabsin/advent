@@ -11,7 +11,7 @@ import (
 )
 
 func main() {
-	ch, err := readinp.Read("input.txt")
+	ch, err := readinp.Read("testinput.txt")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -44,19 +44,22 @@ func main() {
 	}
 	// cornerTiles := day20a(tiles, edgeMap)
 
+	fmt.Println(len(tiles))
 	for _, tile := range tiles {
 		for i := 0; i < 4; i++ {
 			tile.SetNeighborFromEdgeMap(edgeMap)
 		}
 	}
 
+	tileNum := 2729 // 3413
 	for rot := 0; rot < 4; rot++ {
 		gf := gridFiller{
 			tiles:     tiles,
 			usedTiles: map[int]bool{},
 		}
-		tg := gf.Fill()
-		//fmt.Println(tg)
+		tg := gf.Fill(tileNum)
+		fmt.Println(tg)
+		fmt.Println(tg.tiles)
 
 		monster := []struct{ r, c int }{
 			{0, 18},
@@ -94,7 +97,7 @@ func main() {
 			}
 		}
 		fmt.Println(tg.allRoughness(), len(monsterSpots))
-		tiles[3413].Rotate(1)
+		tiles[tileNum].Rotate(1)
 	}
 }
 
@@ -128,6 +131,7 @@ func day20a(tiles tileMap, edgeMap map[int][]int) []int {
 type tileGrid struct {
 	minRow, maxRow, minCol, maxCol int
 	grid                           map[int]map[int]bool
+	tiles                          map[int]map[int]int
 }
 
 func (tg tileGrid) get(r, c int) bool {
@@ -146,6 +150,13 @@ func (tg tileGrid) allRoughness() int {
 }
 
 func (tg *tileGrid) setTile(t *tile.Tile, r, c int) {
+	if tg.tiles == nil {
+		tg.tiles = map[int]map[int]int{}
+	}
+	if tg.tiles[r] == nil {
+		tg.tiles[r] = map[int]int{}
+	}
+	tg.tiles[r][c] = t.ID()
 	if tg.minRow > r*8 {
 		tg.minRow = r * 8
 	}
@@ -191,16 +202,16 @@ type gridFiller struct {
 	tiles     tileMap
 }
 
-func (g gridFiller) Fill() *tileGrid {
+func (g gridFiller) Fill(tileNum int) *tileGrid {
 	tg := &tileGrid{grid: map[int]map[int]bool{}}
-	tileNum := 3413
-	g.usedTiles[tileNum] = true
 	g.fillTile(tg, 0, 0, tileNum)
 	return tg
 }
 
 func (g gridFiller) fillTile(tg *tileGrid, r, c, tileNum int) {
+	g.usedTiles[tileNum] = true
 	tile := g.tiles[tileNum]
+	fmt.Printf("placing tile at %d, %d:\n%v\n", r, c, tile)
 	tg.setTile(tile, r, c)
 	g.doNeighbor(tg, r-1, c, tile, 0)
 	g.doNeighbor(tg, r, c-1, tile, 1)
@@ -216,12 +227,12 @@ func (g gridFiller) doNeighbor(tg *tileGrid, r, c int, tile *tile.Tile, e int) {
 	if g.usedTiles[n] {
 		return
 	}
+	fmt.Printf("doing neighbor %d from tile %d [%d, %d]\n", e, tile.ID(), r, c)
 	edgeMatch := tile.ReadEdge(e)
 	oppositeEdge := (e + 2) % 4
 	for !g.tiles[n].EdgeMatches(oppositeEdge, edgeMatch) {
 		g.tiles[n].Rotate(1)
 	}
 
-	g.usedTiles[n] = true
 	g.fillTile(tg, r, c, n)
 }

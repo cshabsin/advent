@@ -31,10 +31,10 @@ func Read(ch chan readinp.Line) (*Tile, error) {
 		}
 		lines = append(lines, line)
 	}
-	return parseLines(lines)
+	return ParseLines(lines)
 }
 
-func parseLines(lines []string) (*Tile, error) {
+func ParseLines(lines []string) (*Tile, error) {
 	tid, err := strconv.Atoi(strings.TrimSuffix(strings.TrimPrefix(lines[0], "Tile "), ":"))
 	if err != nil {
 		return nil, err
