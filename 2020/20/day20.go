@@ -49,128 +49,52 @@ func main() {
 			tile.SetNeighborFromEdgeMap(edgeMap)
 		}
 	}
-	fmt.Println(tiles[2803])
-	tiles[2803].Rotate(1)
-	fmt.Println(tiles[2803])
-	tiles[2803].Rotate(1)
-	fmt.Println(tiles[2803])
-	tiles[2803].Rotate(1)
-	fmt.Println(tiles[2803])
-	tiles[2803].Rotate(1)
-	fmt.Println(tiles[2803])
 
-	tileGrid := [12][12]*tile.Tile{}
-	for _, tile := range tiles {
-		if tile.NumNeighbors() != 2 {
-			continue
+	for rot := 0; rot < 4; rot++ {
+		gf := gridFiller{
+			tiles:     tiles,
+			usedTiles: map[int]bool{},
 		}
-		tileGrid[0][0] = tile
-		if tile.HasNeighbor(0) && tile.HasNeighbor(1) {
-			tile.Rotate(2)
-		} else if tile.HasNeighbor(0) && tile.HasNeighbor(3) {
-			tile.Rotate(3)
-		} else if tile.HasNeighbor(2) && tile.HasNeighbor(1) {
-			tile.Rotate(1)
-		}
-		break
-	}
+		tg := gf.Fill()
+		//fmt.Println(tg)
 
-	// top left is set, now fill in the rest.
-	fmt.Println("topleft:\n", tileGrid[0][0].String())
-	col := 1
-	usedTiles := map[int]bool{tileGrid[0][0].ID(): true}
-	for col < 12 {
-		rightEdge := tileGrid[col-1][0].ReadEdge(3)
-		matches := edgeMap[rightEdge]
-		// fmt.Println("matches for", rightEdge, tile.EdgeDual(rightEdge), ":", matches)
-		var match int
-		for _, match = range matches {
-			if usedTiles[match] {
-				continue
-			}
-			break
+		monster := []struct{ r, c int }{
+			{0, 18},
+			{1, 0},
+			{1, 5},
+			{1, 6},
+			{1, 11},
+			{1, 12},
+			{1, 17},
+			{1, 18},
+			{1, 19},
+			{2, 1},
+			{2, 4},
+			{2, 7},
+			{2, 10},
+			{2, 13},
+			{2, 16},
 		}
-		if usedTiles[match] {
-			log.Fatalf("no unused match tile for rightEdge %d", rightEdge)
-		}
-		usedTiles[match] = true
-
-		edge := 0
-		for edge < 4 {
-			if tiles[match].ReadEdge(edge) == rightEdge {
-				break
-			}
-			if tiles[match].ReadEdge(edge) == tile.EdgeDual(rightEdge) {
-				break
-			}
-			edge++
-		}
-		if edge == 4 {
-			log.Fatalf("no match for right edge %d (dual %d) in tile %v", rightEdge, tile.EdgeDual(rightEdge), tiles[match])
-		}
-		// fmt.Println("edge", edge, "match before rotate:\n", tiles[match])
-		tiles[match].Rotate(5 - edge)
-		// fmt.Println("match after rotate", 5-edge, ":\n", tiles[match].String())
-		fmt.Println("[ 0 ,", col, "]:\n", tiles[match])
-		tileGrid[col][0] = tiles[match]
-		col++
-	}
-	row := 1
-	for row < 12 {
-		for col := 0; col < 12; col++ {
-			topEdge := tileGrid[col][row-1].ReadEdge(2)
-			matches := edgeMap[topEdge]
-			fmt.Println("matches for", topEdge, ":", matches, "/", edgeMap[tile.EdgeDual(topEdge)])
-			var match int
-			for _, match = range matches {
-				if usedTiles[match] {
-					continue
+		// monsterSpot[r*10000+c] = true if it's a monster spot
+		monsterSpots := map[int]bool{}
+		for y := tg.minRow; y < tg.maxRow; y++ {
+			for x := tg.minCol; x < tg.maxCol; x++ {
+				found := true
+				for _, rc := range monster {
+					if !tg.get(y+rc.r, x+rc.c) {
+						found = false
+						break
+					}
 				}
-				break
-			}
-			if usedTiles[match] {
-				log.Fatalf("no unused match tile for topEdge %d (%d, %d)\n%v\n%v", topEdge, row, col, tileGrid[col][row-1], tileGrid[0][0])
-			}
-			usedTiles[match] = true
-
-			edge := 0
-			for edge < 4 {
-				if tiles[match].ReadEdge(edge) == topEdge {
-					break
-				}
-				if tiles[match].ReadEdge(edge) == tile.EdgeDual(topEdge) {
-					break
-				}
-				edge++
-			}
-			if edge == 4 {
-				log.Fatalf("no match for top edge %d (dual %d) in tile %v (%d, %d)", topEdge, tile.EdgeDual(topEdge), tiles[match], row, col)
-			}
-			tiles[match].Rotate(4 - edge)
-			tileGrid[col][row] = tiles[match]
-		}
-		row++
-	}
-	var grid [96][96]bool
-	for row := 0; row < 12; row++ {
-		for col := 0; col < 12; col++ {
-			for x := 0; x < 8; x++ {
-				for y := 0; y < 8; y++ {
-					grid[row*8+y][col*8+x] = tileGrid[col][row].Get(x, y)
+				if found {
+					for _, rc := range monster {
+						monsterSpots[(y+rc.r)*10000+x+rc.c] = true
+					}
 				}
 			}
 		}
-	}
-	for r := 0; r < 96; r++ {
-		var b strings.Builder
-		for c := 0; c < 96; c++ {
-			if grid[r][c] {
-				b.WriteString("X")
-			} else {
-				b.WriteString(".")
-			}
-		}
-		fmt.Println(b.String)
+		fmt.Println(tg.allRoughness(), len(monsterSpots))
+		tiles[3413].Rotate(1)
 	}
 }
 
@@ -198,4 +122,106 @@ func day20a(tiles tileMap, edgeMap map[int][]int) []int {
 	}
 	fmt.Println(total)
 	return corners
+}
+
+// map[row]map[col]pixel
+type tileGrid struct {
+	minRow, maxRow, minCol, maxCol int
+	grid                           map[int]map[int]bool
+}
+
+func (tg tileGrid) get(r, c int) bool {
+	if tg.grid[r] == nil {
+		return false
+	}
+	return tg.grid[r][c]
+}
+
+func (tg tileGrid) allRoughness() int {
+	roughness := 0
+	for _, row := range tg.grid {
+		roughness += len(row)
+	}
+	return roughness
+}
+
+func (tg *tileGrid) setTile(t *tile.Tile, r, c int) {
+	if tg.minRow > r*8 {
+		tg.minRow = r * 8
+	}
+	if tg.maxRow < (r+1)*8 {
+		tg.maxRow = (r + 1) * 8
+	}
+	if tg.minCol > c*8 {
+		tg.minCol = c * 8
+	}
+	if tg.maxCol < (c+1)*8 {
+		tg.maxCol = (c + 1) * 8
+	}
+	for y := 0; y < 8; y++ {
+		for x := 0; x < 8; x++ {
+			if t.Get(x, y) {
+				if row := tg.grid[r*8+y]; row == nil {
+					tg.grid[r*8+y] = map[int]bool{c*8 + x: true}
+				} else {
+					row[c*8+x] = true
+				}
+			}
+		}
+	}
+}
+
+func (tg tileGrid) String() string {
+	var b strings.Builder
+	for row := tg.minRow; row < tg.maxRow; row++ {
+		for col := tg.minCol; col < tg.maxCol; col++ {
+			if tg.grid[row] != nil && tg.grid[row][col] {
+				b.WriteString("X ")
+			} else {
+				b.WriteString(". ")
+			}
+		}
+		b.WriteString("\n")
+	}
+	return b.String()
+}
+
+type gridFiller struct {
+	usedTiles map[int]bool
+	tiles     tileMap
+}
+
+func (g gridFiller) Fill() *tileGrid {
+	tg := &tileGrid{grid: map[int]map[int]bool{}}
+	tileNum := 3413
+	g.usedTiles[tileNum] = true
+	g.fillTile(tg, 0, 0, tileNum)
+	return tg
+}
+
+func (g gridFiller) fillTile(tg *tileGrid, r, c, tileNum int) {
+	tile := g.tiles[tileNum]
+	tg.setTile(tile, r, c)
+	g.doNeighbor(tg, r-1, c, tile, 0)
+	g.doNeighbor(tg, r, c-1, tile, 1)
+	g.doNeighbor(tg, r+1, c, tile, 2)
+	g.doNeighbor(tg, r, c+1, tile, 3)
+}
+
+func (g gridFiller) doNeighbor(tg *tileGrid, r, c int, tile *tile.Tile, e int) {
+	if !tile.HasNeighbor(e) {
+		return
+	}
+	n := tile.GetNeighbor(e)
+	if g.usedTiles[n] {
+		return
+	}
+	edgeMatch := tile.ReadEdge(e)
+	oppositeEdge := (e + 2) % 4
+	for !g.tiles[n].EdgeMatches(oppositeEdge, edgeMatch) {
+		g.tiles[n].Rotate(1)
+	}
+
+	g.usedTiles[n] = true
+	g.fillTile(tg, r, c, n)
 }

@@ -100,6 +100,16 @@ func (t *Tile) Rotate(n int) {
 	t.rotation = (t.rotation + n) % 4
 }
 
+func (t Tile) EdgeMatches(e, val int) bool {
+	if t.ReadEdge(e) == val {
+		return true
+	}
+	if t.ReadEdge(e) == EdgeDual(val) {
+		return true
+	}
+	return false
+}
+
 // SetNeighborFromEdgeMap sets the neighbors from a collected map of edge value to matching tiles.
 func (t *Tile) SetNeighborFromEdgeMap(edgeMap map[int][]int) {
 	neighborCount := 0
@@ -139,7 +149,7 @@ func (t Tile) HasNeighbor(e int) bool {
 func (t Tile) String() string {
 	leftEdge := strconv.Itoa(t.ReadEdge(1))
 	leftDual := fmt.Sprintf("(%d)", EdgeDual(t.ReadEdge(1)))
-	spacer := " "
+	spacer := " " + strconv.Itoa(t.rotation)
 	for len(leftEdge) < len(leftDual) {
 		leftEdge += " "
 	}
