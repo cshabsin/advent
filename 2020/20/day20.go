@@ -133,7 +133,7 @@ func (tg *tileGrid) setTile(t *tile.Tile, r, c int) {
 	}
 	for y := 0; y < 8; y++ {
 		for x := 0; x < 8; x++ {
-			if t.Get(x, y) {
+			if t.Get(y, x) {
 				if row := tg.grid[r*8+y]; row == nil {
 					tg.grid[r*8+y] = map[int]bool{c*8 + x: true}
 				} else {

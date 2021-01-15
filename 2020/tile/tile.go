@@ -16,14 +16,17 @@ type Map struct {
 	edgeMap map[int][]int
 }
 
-func (tm *Map) Rotate(tile, rotate int) {
-	tm.tiles[tile].Rotate(rotate)
+// Rotate rotates the given tile n times counterclockwise.
+func (tm *Map) Rotate(tileNum, rotate int) {
+	tm.tiles[tileNum].Rotate(rotate)
 }
 
+// GetTile returns the numbered tile.
 func (tm Map) GetTile(tileNum int) *Tile {
 	return tm.tiles[tileNum]
 }
 
+// ReadFile reads an input file and produces a tile Map.
 func ReadFile(filename string) (*Map, error) {
 	ch, err := readinp.Read("testinput.txt")
 	if err != nil {
@@ -85,6 +88,7 @@ func Read(ch chan readinp.Line) (*Tile, error) {
 	return ParseLines(lines)
 }
 
+// ParseLines parses a number of lines to produce a single tile.
 func ParseLines(lines []string) (*Tile, error) {
 	tid, err := strconv.Atoi(strings.TrimSuffix(strings.TrimPrefix(lines[0], "Tile "), ":"))
 	if err != nil {
@@ -163,7 +167,8 @@ func (t Tile) ReadEdge(e int) int {
 	// return t.edges[(e-t.rotation+4)%4]
 }
 
-func (t Tile) Get(x, y int) bool {
+// Get tells whether the given pixel is set, based on the contents of the tile and its rotation state.
+func (t Tile) Get(y, x int) bool {
 	switch t.rotation % 4 {
 	case 1:
 		x, y = 7-y, x
@@ -181,6 +186,8 @@ func (t *Tile) Rotate(n int) {
 	t.rotation = (t.rotation + n) % 4
 }
 
+// EdgeMatches determines whether the edge matches the given value.
+// TODO: currently this ignores flipped state entirely.
 func (t Tile) EdgeMatches(e, val int) bool {
 	if t.ReadEdge(e) == val {
 		return true
@@ -212,10 +219,12 @@ func (t *Tile) SetNeighborFromEdgeMap(edgeMap map[int][]int) {
 	t.numNeighbors = neighborCount
 }
 
+// NumNeighbors returns the number of matched neighbors.
 func (t Tile) NumNeighbors() int {
 	return t.numNeighbors
 }
 
+// GetNeighbor returns the neighbor number on the given edge, after rotation/flip (0 if none)
 func (t Tile) GetNeighbor(e int) int {
 	if t.neighbors == nil {
 		return -1
@@ -223,6 +232,7 @@ func (t Tile) GetNeighbor(e int) int {
 	return t.neighbors[(e-t.rotation+4)%4]
 }
 
+// HasNeighbor returns whether there is a
 func (t Tile) HasNeighbor(e int) bool {
 	return t.GetNeighbor(e) != 0
 }
@@ -248,7 +258,7 @@ func (t Tile) String() string {
 			b.WriteString(spacer)
 		}
 		for x := 0; x < 8; x++ {
-			if t.Get(x, y) {
+			if t.Get(y, x) {
 				b.WriteString("X ")
 			} else {
 				b.WriteString(". ")
@@ -265,6 +275,7 @@ func (t Tile) String() string {
 	return b.String()
 }
 
+// EdgeDual returns the "dual" of a given edge value (i.e. its value with bits read in the other direction).
 func EdgeDual(a int) int {
 	var b int
 	for i := 0; i < 10; i++ {
@@ -282,6 +293,8 @@ func edgesMatch(a, b int) bool {
 	return true
 }
 
+// ReadLine reads a single line from the given channel and trims it.
+// Returns EOF error on eof, or any other errors.
 func ReadLine(ch chan readinp.Line) (string, error) {
 	line, ok := <-ch
 	if !ok {
