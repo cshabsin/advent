@@ -51,12 +51,13 @@ func main() {
 		}
 	}
 
-	tileNum := 2729 // 3413
+	tileNum := 1951 // 3413
 	for rot := 0; rot < 4; rot++ {
 		gf := gridFiller{
 			tiles:     tiles,
 			usedTiles: map[int]bool{},
 		}
+		tiles[tileNum].Rotate(3)
 		tg := gf.Fill(tileNum)
 		fmt.Println(tg)
 		fmt.Println(tg.tiles)
@@ -230,6 +231,7 @@ func (g gridFiller) doNeighbor(tg *tileGrid, r, c int, tile *tile.Tile, e int) {
 	fmt.Printf("doing neighbor %d from tile %d [%d, %d]\n", e, tile.ID(), r, c)
 	edgeMatch := tile.ReadEdge(e)
 	oppositeEdge := (e + 2) % 4
+	fmt.Printf("ensuring edge %d matches %d\n", oppositeEdge, edgeMatch)
 	for !g.tiles[n].EdgeMatches(oppositeEdge, edgeMatch) {
 		g.tiles[n].Rotate(1)
 	}
