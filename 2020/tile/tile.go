@@ -71,6 +71,7 @@ type Tile struct {
 	id           int
 	allVals      [][]bool
 	rotation     int
+	flipped      bool
 	neighbors    []int // same indeces as edges, 0 for none
 	numNeighbors int
 }
@@ -120,30 +121,30 @@ func (t Tile) ID() int {
 // ReadEdge reads the binary value of the bits on the given edge.
 // edges are: 0(top), 1(left), 2(bottom), 3(right)
 func (t Tile) ReadEdge(e int) int {
-	switch (e - t.rotation + 4) % 4 {
+	switch e {
 	case 0: // top
 		total := 0
 		for j := 0; j < 10; j++ {
 			total *= 2
-			if t.allVals[0][j] {
+			if t.getRaw(0, j) {
 				total++
 			}
 		}
 		return total
 	case 1: // left
 		total := 0
-		for j := 9; j >= 0; j-- {
+		for j := 0; j < 10; j++ {
 			total *= 2
-			if t.allVals[j][0] {
+			if t.getRaw(j, 0) {
 				total++
 			}
 		}
 		return total
 	case 2: // bottom
 		total := 0
-		for j := 9; j >= 0; j-- {
+		for j := 0; j < 10; j++ {
 			total *= 2
-			if t.allVals[9][j] {
+			if t.getRaw(9, j) {
 				total++
 			}
 		}
@@ -152,37 +153,36 @@ func (t Tile) ReadEdge(e int) int {
 		total := 0
 		for j := 0; j < 10; j++ {
 			total *= 2
-			if t.allVals[j][9] {
+			if t.getRaw(j, 9) {
 				total++
 			}
 		}
 		return total
+	default:
+		log.Fatal("bad e", e)
+		return -1
 	}
-	log.Fatal("bad e", e)
-	return -1
-	// if len(t.edges) != 4 {
-	// 	log.Fatalf("Tile %d has too few edges", t.id)
-	// }
-	// // fmt.Println("reading edge", e, "with rotation", t.rotation, "as", (e-t.rotation+4)%4, ":", t.edges[(e-t.rotation+4)%4])
-	// return t.edges[(e-t.rotation+4)%4]
+}
+
+func (t Tile) getRaw(y, x int) bool {
+	switch t.rotation % 4 {
+	case 1:
+		x, y = 9-y, x
+	case 2:
+		x, y = 9-x, 9-y
+	case 3:
+		x, y = y, 9-x
+	}
+	return t.allVals[y][x]
 }
 
 // Get tells whether the given pixel is set, based on the contents of the tile and its rotation state.
 func (t Tile) Get(y, x int) bool {
-	switch t.rotation % 4 {
-	case 1:
-		x, y = 7-y, x
-	case 2:
-		x, y = 7-x, 7-y
-	case 3:
-		x, y = y, 7-x
-	}
-	return t.allVals[y+1][x+1]
+	return t.getRaw(y+1, x+1)
 }
 
 // Rotate rotates the tile counterclockwise n times.
 func (t *Tile) Rotate(n int) {
-	// fmt.Println("rotating", n, "to", (t.rotation+n)%4)
 	t.rotation = (t.rotation + n) % 4
 }
 
@@ -282,15 +282,6 @@ func EdgeDual(a int) int {
 		b = b*2 + (a >> i & 1)
 	}
 	return b
-}
-
-func edgesMatch(a, b int) bool {
-	for i := 0; i < 10; i++ {
-		if a>>i&1 != b>>(9-i)&1 {
-			return false
-		}
-	}
-	return true
 }
 
 // ReadLine reads a single line from the given channel and trims it.
