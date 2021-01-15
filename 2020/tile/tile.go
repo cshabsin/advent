@@ -66,7 +66,6 @@ func ReadFile(filename string) (*TileMap, error) {
 type Tile struct {
 	id           int
 	allVals      [][]bool
-	edges        []int
 	matches      []bool
 	rotation     int
 	neighbors    []int // same indeces as edges, 0 for none
@@ -102,15 +101,10 @@ func ParseLines(lines []string) (*Tile, error) {
 		}
 		allVals[i] = allValLine
 	}
-	var edges []int
-	for i := 0; i < 4; i++ {
-		edges = append(edges, readEdge(allVals, i))
-	}
 
 	return &Tile{
 		id:      tid,
 		allVals: allVals,
-		edges:   edges,
 	}, nil
 }
 
@@ -122,11 +116,51 @@ func (t Tile) ID() int {
 // ReadEdge reads the binary value of the bits on the given edge.
 // edges are: 0(top), 1(left), 2(bottom), 3(right)
 func (t Tile) ReadEdge(e int) int {
-	if len(t.edges) != 4 {
-		log.Fatalf("Tile %d has too few edges", t.id)
+	switch (e - t.rotation + 4) % 4 {
+	case 0: // top
+		total := 0
+		for j := 0; j < 10; j++ {
+			total *= 2
+			if t.allVals[0][j] {
+				total++
+			}
+		}
+		return total
+	case 1: // left
+		total := 0
+		for j := 9; j >= 0; j-- {
+			total *= 2
+			if t.allVals[j][0] {
+				total++
+			}
+		}
+		return total
+	case 2: // bottom
+		total := 0
+		for j := 9; j >= 0; j-- {
+			total *= 2
+			if t.allVals[9][j] {
+				total++
+			}
+		}
+		return total
+	case 3: // right
+		total := 0
+		for j := 0; j < 10; j++ {
+			total *= 2
+			if t.allVals[j][9] {
+				total++
+			}
+		}
+		return total
 	}
-	// fmt.Println("reading edge", e, "with rotation", t.rotation, "as", (e-t.rotation+4)%4, ":", t.edges[(e-t.rotation+4)%4])
-	return t.edges[(e-t.rotation+4)%4]
+	log.Fatal("bad e", e)
+	return -1
+	// if len(t.edges) != 4 {
+	// 	log.Fatalf("Tile %d has too few edges", t.id)
+	// }
+	// // fmt.Println("reading edge", e, "with rotation", t.rotation, "as", (e-t.rotation+4)%4, ":", t.edges[(e-t.rotation+4)%4])
+	// return t.edges[(e-t.rotation+4)%4]
 }
 
 func (t Tile) Get(x, y int) bool {
@@ -229,49 +263,6 @@ func (t Tile) String() string {
 	}
 	b.WriteString(fmt.Sprintf("<- %d  %d (%d) v %d -> %d\n", t.GetNeighbor(1), t.ReadEdge(2), EdgeDual(t.ReadEdge(2)), t.GetNeighbor(2), t.GetNeighbor(3)))
 	return b.String()
-}
-
-func readEdge(allVals [][]bool, e int) int {
-	switch e {
-	case 0: // top
-		total := 0
-		for j := 0; j < 10; j++ {
-			total *= 2
-			if allVals[0][j] {
-				total++
-			}
-		}
-		return total
-	case 1: // left
-		total := 0
-		for j := 9; j >= 0; j-- {
-			total *= 2
-			if allVals[j][0] {
-				total++
-			}
-		}
-		return total
-	case 2: // bottom
-		total := 0
-		for j := 9; j >= 0; j-- {
-			total *= 2
-			if allVals[9][j] {
-				total++
-			}
-		}
-		return total
-	case 3: // right
-		total := 0
-		for j := 0; j < 10; j++ {
-			total *= 2
-			if allVals[j][9] {
-				total++
-			}
-		}
-		return total
-	}
-	log.Fatal("bad e", e)
-	return -1
 }
 
 func EdgeDual(a int) int {
