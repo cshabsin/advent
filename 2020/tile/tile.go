@@ -173,6 +173,9 @@ func (t Tile) getRaw(y, x int) bool {
 	case 3:
 		x, y = y, 9-x
 	}
+	if t.flipped {
+		x = 9 - x
+	}
 	return t.allVals[y][x]
 }
 
@@ -186,13 +189,14 @@ func (t *Tile) Rotate(n int) {
 	t.rotation = (t.rotation + n) % 4
 }
 
+// Flip flips the tile across y axis.
+func (t *Tile) Flip() {
+	t.flipped = !t.flipped
+}
+
 // EdgeMatches determines whether the edge matches the given value.
-// TODO: currently this ignores flipped state entirely.
 func (t Tile) EdgeMatches(e, val int) bool {
 	if t.ReadEdge(e) == val {
-		return true
-	}
-	if t.ReadEdge(e) == EdgeDual(val) {
 		return true
 	}
 	return false

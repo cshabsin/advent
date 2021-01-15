@@ -193,8 +193,17 @@ func (g gridFiller) doNeighbor(tg *tileGrid, r, c int, tile *tile.Tile, e int) {
 	edgeMatch := tile.ReadEdge(e)
 	oppositeEdge := (e + 2) % 4
 	fmt.Printf("ensuring edge %d matches %d\n", oppositeEdge, edgeMatch)
-	for !g.tiles.GetTile(n).EdgeMatches(oppositeEdge, edgeMatch) {
-		g.tiles.Rotate(n, 1)
+	for j := 0; j < 1; j++ {
+		for i := 0; i < 4; i++ {
+			if g.tiles.GetTile(n).EdgeMatches(oppositeEdge, edgeMatch) {
+				break
+			}
+			g.tiles.Rotate(n, 1)
+		}
+		if g.tiles.GetTile(n).EdgeMatches(oppositeEdge, edgeMatch) {
+			break
+		}
+		g.tiles.GetTile(n).Flip()
 	}
 
 	g.fillTile(tg, r, c, n)
