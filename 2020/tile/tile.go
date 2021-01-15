@@ -10,25 +10,26 @@ import (
 	"github.com/cshabsin/advent/common/readinp"
 )
 
-type TileMap struct {
+// Map is the structure of a set of tiles.
+type Map struct {
 	tiles   map[int]*Tile
 	edgeMap map[int][]int
 }
 
-func (tm *TileMap) Rotate(tile, rotate int) {
+func (tm *Map) Rotate(tile, rotate int) {
 	tm.tiles[tile].Rotate(rotate)
 }
 
-func (tm TileMap) GetTile(tileNum int) *Tile {
+func (tm Map) GetTile(tileNum int) *Tile {
 	return tm.tiles[tileNum]
 }
 
-func ReadFile(filename string) (*TileMap, error) {
+func ReadFile(filename string) (*Map, error) {
 	ch, err := readinp.Read("testinput.txt")
 	if err != nil {
 		return nil, err
 	}
-	tiles := &TileMap{tiles: map[int]*Tile{}, edgeMap: map[int][]int{}}
+	tiles := &Map{tiles: map[int]*Tile{}, edgeMap: map[int][]int{}}
 	for {
 		nextTile, err := Read(ch)
 		if err == io.EOF {
@@ -66,7 +67,6 @@ func ReadFile(filename string) (*TileMap, error) {
 type Tile struct {
 	id           int
 	allVals      [][]bool
-	matches      []bool
 	rotation     int
 	neighbors    []int // same indeces as edges, 0 for none
 	numNeighbors int

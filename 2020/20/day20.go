@@ -161,7 +161,7 @@ func (tg tileGrid) String() string {
 
 type gridFiller struct {
 	usedTiles map[int]bool
-	tiles     *tile.TileMap
+	tiles     *tile.Map
 }
 
 func (g gridFiller) Fill(tileNum int) *tileGrid {

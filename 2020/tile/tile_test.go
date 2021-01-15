@@ -42,7 +42,7 @@ func TestReadEdge(t *testing.T) {
 	}
 	for _, tc := range testcases {
 		t.Run(tc.lines[0], func(t *testing.T) {
-			tile, err := parseLines(tc.lines)
+			tile, err := ParseLines(tc.lines)
 			if err != nil {
 				t.Fatal(err)
 			}
