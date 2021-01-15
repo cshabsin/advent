@@ -10,6 +10,58 @@ import (
 	"github.com/cshabsin/advent/common/readinp"
 )
 
+type TileMap struct {
+	tiles   map[int]*Tile
+	edgeMap map[int][]int
+}
+
+func (tm *TileMap) Rotate(tile, rotate int) {
+	tm.tiles[tile].Rotate(rotate)
+}
+
+func (tm TileMap) GetTile(tileNum int) *Tile {
+	return tm.tiles[tileNum]
+}
+
+func ReadFile(filename string) (*TileMap, error) {
+	ch, err := readinp.Read("testinput.txt")
+	if err != nil {
+		return nil, err
+	}
+	tiles := &TileMap{tiles: map[int]*Tile{}, edgeMap: map[int][]int{}}
+	for {
+		nextTile, err := Read(ch)
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return nil, err
+		}
+		tid := nextTile.ID()
+		tiles.tiles[tid] = nextTile
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			return nil, err
+		}
+		for i := 0; i < 4; i++ {
+			edge := nextTile.ReadEdge(i)
+			tiles.edgeMap[edge] = append(tiles.edgeMap[edge], tid)
+			tiles.edgeMap[EdgeDual(edge)] = append(tiles.edgeMap[EdgeDual(edge)], tid)
+		}
+		_, err = ReadLine(ch) // skip blank line
+		if err != nil {
+			return nil, err
+		}
+	}
+	for _, tile := range tiles.tiles {
+		for i := 0; i < 4; i++ {
+			tile.SetNeighborFromEdgeMap(tiles.edgeMap)
+		}
+	}
+	return tiles, nil
+}
+
 // Tile is a tile from day 20 of advent of code 2020.
 type Tile struct {
 	id           int

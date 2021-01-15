@@ -2,53 +2,16 @@ package main
 
 import (
 	"fmt"
-	"io"
 	"log"
 	"strings"
 
 	"github.com/cshabsin/advent/2020/tile"
-	"github.com/cshabsin/advent/common/readinp"
 )
 
 func main() {
-	ch, err := readinp.Read("testinput.txt")
+	tiles, err := tile.ReadFile("testinput.txt")
 	if err != nil {
 		log.Fatal(err)
-	}
-	tiles := tileMap{}
-	edgeMap := map[int][]int{}
-	for {
-		nextTile, err := tile.Read(ch)
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			log.Fatal(err)
-		}
-		tid := nextTile.ID()
-		tiles[tid] = nextTile
-		if err == io.EOF {
-			break
-		} else if err != nil {
-			log.Fatal(err)
-		}
-		for i := 0; i < 4; i++ {
-			edge := nextTile.ReadEdge(i)
-			edgeMap[edge] = append(edgeMap[edge], tid)
-			edgeMap[tile.EdgeDual(edge)] = append(edgeMap[tile.EdgeDual(edge)], tid)
-		}
-		_, err = tile.ReadLine(ch) // skip blank line
-		if err != nil {
-			log.Fatal(err)
-		}
-	}
-	// cornerTiles := day20a(tiles, edgeMap)
-
-	fmt.Println(len(tiles))
-	for _, tile := range tiles {
-		for i := 0; i < 4; i++ {
-			tile.SetNeighborFromEdgeMap(edgeMap)
-		}
 	}
 
 	tileNum := 1951 // 3413
@@ -57,7 +20,7 @@ func main() {
 			tiles:     tiles,
 			usedTiles: map[int]bool{},
 		}
-		tiles[tileNum].Rotate(3)
+		tiles.Rotate(tileNum, 3)
 		tg := gf.Fill(tileNum)
 		fmt.Println(tg)
 		fmt.Println(tg.tiles)
@@ -98,13 +61,11 @@ func main() {
 			}
 		}
 		fmt.Println(tg.allRoughness(), len(monsterSpots))
-		tiles[tileNum].Rotate(1)
+		tiles.Rotate(tileNum, 1)
 	}
 }
 
-type tileMap map[int]*tile.Tile
-
-func day20a(tiles tileMap, edgeMap map[int][]int) []int {
+func day20a(tiles map[int]*tile.Tile, edgeMap map[int][]int) []int {
 	// day 20a
 	numMatches := map[int][]int{} // number of matches for each tile's four edges
 	for tileNum, tile := range tiles {
@@ -200,7 +161,7 @@ func (tg tileGrid) String() string {
 
 type gridFiller struct {
 	usedTiles map[int]bool
-	tiles     tileMap
+	tiles     *tile.TileMap
 }
 
 func (g gridFiller) Fill(tileNum int) *tileGrid {
@@ -211,7 +172,7 @@ func (g gridFiller) Fill(tileNum int) *tileGrid {
 
 func (g gridFiller) fillTile(tg *tileGrid, r, c, tileNum int) {
 	g.usedTiles[tileNum] = true
-	tile := g.tiles[tileNum]
+	tile := g.tiles.GetTile(tileNum)
 	fmt.Printf("placing tile at %d, %d:\n%v\n", r, c, tile)
 	tg.setTile(tile, r, c)
 	g.doNeighbor(tg, r-1, c, tile, 0)
@@ -232,8 +193,8 @@ func (g gridFiller) doNeighbor(tg *tileGrid, r, c int, tile *tile.Tile, e int) {
 	edgeMatch := tile.ReadEdge(e)
 	oppositeEdge := (e + 2) % 4
 	fmt.Printf("ensuring edge %d matches %d\n", oppositeEdge, edgeMatch)
-	for !g.tiles[n].EdgeMatches(oppositeEdge, edgeMatch) {
-		g.tiles[n].Rotate(1)
+	for !g.tiles.GetTile(n).EdgeMatches(oppositeEdge, edgeMatch) {
+		g.tiles.Rotate(n, 1)
 	}
 
 	g.fillTile(tg, r, c, n)
