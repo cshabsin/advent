@@ -9,21 +9,24 @@ import (
 )
 
 func main() {
-	tiles, err := tile.ReadFile("testinput.txt")
+	tiles, err := tile.ReadFile("input.txt")
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	tileNum := 1951 // 3413
-	for rot := 0; rot < 4; rot++ {
+	tileNum := 3413
+	for rot := 0; rot < 8; rot++ {
 		gf := gridFiller{
 			tiles:     tiles,
 			usedTiles: map[int]bool{},
 		}
-		tiles.Rotate(tileNum, 3)
+		tiles.Rotate(tileNum, 1)
+		if rot == 4 {
+			tiles.GetTile(tileNum).Flip()
+		}
 		tg := gf.Fill(tileNum)
-		fmt.Println(tg)
-		fmt.Println(tg.tiles)
+		fmt.Printf("tilegrid:\n%v\n", tg)
+		// fmt.Println(tg.tiles)
 
 		monster := []struct{ r, c int }{
 			{0, 18},
@@ -60,7 +63,7 @@ func main() {
 				}
 			}
 		}
-		fmt.Println(tg.allRoughness(), len(monsterSpots))
+		fmt.Println("roughness:", tg.allRoughness(), len(monsterSpots))
 		tiles.Rotate(tileNum, 1)
 	}
 }
@@ -193,18 +196,19 @@ func (g gridFiller) doNeighbor(tg *tileGrid, r, c int, tile *tile.Tile, e int) {
 	edgeMatch := tile.ReadEdge(e)
 	oppositeEdge := (e + 2) % 4
 	fmt.Printf("ensuring edge %d matches %d\n", oppositeEdge, edgeMatch)
-	for j := 0; j < 1; j++ {
-		for i := 0; i < 4; i++ {
-			if g.tiles.GetTile(n).EdgeMatches(oppositeEdge, edgeMatch) {
-				break
-			}
-			g.tiles.Rotate(n, 1)
-		}
-		if g.tiles.GetTile(n).EdgeMatches(oppositeEdge, edgeMatch) {
-			break
-		}
-		g.tiles.GetTile(n).Flip()
-	}
+	g.tiles.GetTile(n).MatchEdge(oppositeEdge, edgeMatch)
+	// for j := 0; j < 2; j++ {
+	// 	for i := 0; i < 4; i++ {
+	// 		if g.tiles.GetTile(n).EdgeMatches(oppositeEdge, edgeMatch) {
+	// 			break
+	// 		}
+	// 		g.tiles.Rotate(n, 1)
+	// 	}
+	// 	if g.tiles.GetTile(n).EdgeMatches(oppositeEdge, edgeMatch) {
+	// 		break
+	// 	}
+	// 	g.tiles.GetTile(n).Flip()
+	// }
 
 	g.fillTile(tg, r, c, n)
 }

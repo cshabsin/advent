@@ -28,7 +28,7 @@ func (tm Map) GetTile(tileNum int) *Tile {
 
 // ReadFile reads an input file and produces a tile Map.
 func ReadFile(filename string) (*Map, error) {
-	ch, err := readinp.Read("testinput.txt")
+	ch, err := readinp.Read(filename)
 	if err != nil {
 		return nil, err
 	}
@@ -202,6 +202,20 @@ func (t Tile) EdgeMatches(e, val int) bool {
 	return false
 }
 
+// MatchEdge flips and rotates the tile until the given value is on the given edge.
+func (t *Tile) MatchEdge(e, val int) {
+	for j := 0; j < 2; j++ {
+		for i := 0; i < 4; i++ {
+			if t.ReadEdge(e) == val {
+				return
+			}
+			t.Rotate(1)
+		}
+		t.Flip()
+	}
+	log.Fatalf("no match for %d on edge %d in tile:\n%v", val, e, *t)
+}
+
 // SetNeighborFromEdgeMap sets the neighbors from a collected map of edge value to matching tiles.
 func (t *Tile) SetNeighborFromEdgeMap(edgeMap map[int][]int) {
 	neighborCount := 0
@@ -233,7 +247,15 @@ func (t Tile) GetNeighbor(e int) int {
 	if t.neighbors == nil {
 		return -1
 	}
-	return t.neighbors[(e-t.rotation+4)%4]
+	e = (e - t.rotation + 4) % 4
+	if t.flipped {
+		if e == 1 {
+			e = 3
+		} else if e == 3 {
+			e = 1
+		}
+	}
+	return t.neighbors[e]
 }
 
 // HasNeighbor returns whether there is a
