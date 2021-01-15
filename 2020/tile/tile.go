@@ -65,7 +65,7 @@ func ReadFile(filename string) (*TileMap, error) {
 // Tile is a tile from day 20 of advent of code 2020.
 type Tile struct {
 	id           int
-	pixels       [][]bool
+	allVals      [][]bool
 	edges        []int
 	matches      []bool
 	rotation     int
@@ -107,15 +107,10 @@ func ParseLines(lines []string) (*Tile, error) {
 		edges = append(edges, readEdge(allVals, i))
 	}
 
-	var pixels [][]bool
-	for i := 1; i < 9; i++ {
-		pixels = append(pixels, allVals[i][1:9])
-	}
-
 	return &Tile{
-		id:     tid,
-		pixels: pixels,
-		edges:  edges,
+		id:      tid,
+		allVals: allVals,
+		edges:   edges,
 	}, nil
 }
 
@@ -143,7 +138,7 @@ func (t Tile) Get(x, y int) bool {
 	case 3:
 		x, y = y, 7-x
 	}
-	return t.pixels[y][x]
+	return t.allVals[y+1][x+1]
 }
 
 // Rotate rotates the tile counterclockwise n times.
