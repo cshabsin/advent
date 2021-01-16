@@ -17,7 +17,7 @@ func main() {
 		log.Fatal(err)
 	}
 	rdr := bufio.NewReader(f)
-	var moons []*Moon
+	var moons, firstMoons []*Moon
 	for {
 		line, err := rdr.ReadString('\n')
 		if err == io.EOF {
@@ -28,10 +28,12 @@ func main() {
 		}
 		line = strings.TrimSuffix(line, "\n")
 		moons = append(moons, parseMoon(line))
+		firstMoons = append(firstMoons, parseMoon(line))
 	}
 	printMoons(moons)
 	fmt.Println()
-	for i := 0; i < 1000; i++ {
+	var i, xEquiv, yEquiv, zEquiv int64
+	for {
 		for first := 0; first < len(moons); first++ {
 			for second := first + 1; second < len(moons); second++ {
 				if moons[first].X < moons[second].X {
@@ -60,12 +62,45 @@ func main() {
 		for _, moon := range moons {
 			moon.Step()
 		}
-		fmt.Println("After", i+1, "steps:")
-		printMoons(moons)
-		fmt.Println()
+		i++
+		if equivalentX(moons, firstMoons) {
+			if xEquiv == 0 {
+				fmt.Println("xEquiv", i)
+				xEquiv = i
+			}
+		}
+		if equivalentY(moons, firstMoons) {
+			if yEquiv == 0 {
+				fmt.Println("yEquiv", i)
+				yEquiv = i
+			}
+		}
+		if equivalentZ(moons, firstMoons) {
+			if zEquiv == 0 {
+				fmt.Println("zEquiv", i)
+				zEquiv = i
+			}
+		}
+		if xEquiv != 0 && yEquiv != 0 && zEquiv != 0 {
+			break
+		}
 	}
-	printMoons(moons)
-	fmt.Println("energy:", energy(moons))
+	var j int64
+	for j = -2; j < 4; j++ {
+		fmt.Println(j, "gcd", gcd(gcd(xEquiv+j, yEquiv+j), zEquiv+j))
+		fmt.Println(j, "lcm", (xEquiv+j)*(yEquiv+j)*(zEquiv+j)/gcd(gcd(xEquiv+j, yEquiv+j), zEquiv+j))
+	}
+	// cshabsin@DESKTOP-LC7C1G1:~/go/src/github.com/cshabsin/advent/2019/12$ factor 108344
+	// 108344: 2 2 2 29 467
+	// cshabsin@DESKTOP-LC7C1G1:~/go/src/github.com/cshabsin/advent/2019/12$ factor 113028
+	// 113028: 2 2 3 9419
+	// cshabsin@DESKTOP-LC7C1G1:~/go/src/github.com/cshabsin/advent/2019/12$ factor 231614
+	// 231614: 2 115807
+	// cshabsin@DESKTOP-LC7C1G1:~/go/src/github.com/cshabsin/advent/2019/12$ dc
+	// 2 2 2 3 29 467 9419 115807 *********p
+	// dc: stack empty
+	// dc: stack empty
+	// 354540398381256
 }
 
 func printMoons(moons []*Moon) {
@@ -80,6 +115,49 @@ func energy(moons []*Moon) int {
 		e += moon.Potential() * moon.Kinetic()
 	}
 	return e
+}
+
+func gcd(a, b int64) int64 {
+	if b == 0 {
+		return a
+	}
+	return gcd(b, a%b)
+}
+
+func equivalentX(a []*Moon, b []*Moon) bool {
+	for i := 0; i < len(a); i++ {
+		if a[i].X != b[i].X {
+			return false
+		}
+		if a[i].VX != b[i].VX {
+			return false
+		}
+	}
+	return true
+}
+
+func equivalentY(a []*Moon, b []*Moon) bool {
+	for i := 0; i < len(a); i++ {
+		if a[i].Y != b[i].Y {
+			return false
+		}
+		if a[i].VY != b[i].VY {
+			return false
+		}
+	}
+	return true
+}
+
+func equivalentZ(a []*Moon, b []*Moon) bool {
+	for i := 0; i < len(a); i++ {
+		if a[i].Z != b[i].Z {
+			return false
+		}
+		if a[i].VZ != b[i].VZ {
+			return false
+		}
+	}
+	return true
 }
 
 // Moon is data about a moon's position and velocity.
