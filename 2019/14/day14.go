@@ -28,7 +28,34 @@ func main() {
 		}
 		formulas[formula.output.name] = formula
 	}
-	fmt.Println(*formulas["FUEL"])
+	needs := map[string]int{"FUEL": 1}
+	inventory := map[string]int{}
+	for {
+		var currentNeed string
+		for currentNeed = range needs {
+			if currentNeed != "ORE" {
+				break
+			}
+		}
+		if currentNeed == "ORE" {
+			break
+		}
+		absoluteNeedCount := needs[currentNeed]
+		needCount := needs[currentNeed] - inventory[currentNeed]
+		delete(needs, currentNeed)
+		// fmt.Println("handling", currentNeed)
+
+		outCount := formulas[currentNeed].output.count
+		mul := (needCount + outCount - 1) / outCount // ceiling division
+		// fmt.Println("abs need", absoluteNeedCount, "; needCount", needCount, "; outCount", outCount, "; mul", mul)
+		for _, needEnt := range formulas[currentNeed].inputs {
+			needs[needEnt.name] = needs[needEnt.name] + needEnt.count*mul
+		}
+		inventory[currentNeed] += mul*formulas[currentNeed].output.count - absoluteNeedCount
+		// fmt.Println("needs:", needs)
+		// fmt.Println("inventory:", inventory)
+	}
+	fmt.Println("needs:", needs)
 }
 
 type entry struct {
