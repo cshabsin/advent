@@ -1,42 +1,62 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
-	"io"
 	"log"
-	"os"
 	"strconv"
-	"strings"
+
+	"github.com/cshabsin/advent/commongen/readinp"
 )
 
 func main() {
 	day1b()
 }
 
+type IntParser struct{}
+
+func (IntParser) Parse(c string) (int, error) {
+	return strconv.Atoi(c)
+}
+
 func day1a() {
-	f, err := os.Open("input.txt")
+	ch, err := readinp.Read[int]("input.txt", IntParser{})
 	if err != nil {
 		log.Fatal(err)
 	}
-	rdr := bufio.NewReader(f)
 	vals := map[int]bool{}
-	for {
-		line, err := rdr.ReadString('\n')
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
+	for line := range ch {
+		if line.Error != nil {
 			log.Fatal(err)
 		}
-		val, err := strconv.Atoi(strings.TrimSpace(line))
-		if err != nil {
-			log.Fatal(err)
-		}
+		val := line.Contents
 		if vals[val] {
 			fmt.Printf("%d found, answer is: %d\n", val, val*(2020-val))
 			break
 		}
 		vals[2020-val] = true
+	}
+}
+
+func day1b() {
+	ch, err := readinp.Read[int]("input.txt", IntParser{})
+	if err != nil {
+		log.Fatal(err)
+	}
+	vals := map[int]bool{}
+	// map of possible third numbers to product of first two
+	seeking := map[int]int{}
+	for line := range ch {
+		if line.Error != nil {
+			log.Fatal(err)
+		}
+		val := line.Contents
+		if prod, found := seeking[val]; found {
+			fmt.Printf("%d found, answer is: %d\n", val, val*prod)
+			break
+		}
+		for first := range vals {
+			seeking[2020-first-val] = first * val
+		}
+		vals[val] = true
 	}
 }
