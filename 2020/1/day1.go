@@ -12,14 +12,8 @@ func main() {
 	day1b()
 }
 
-type IntParser struct{}
-
-func (IntParser) Parse(c string) (int, error) {
-	return strconv.Atoi(c)
-}
-
 func day1a() {
-	ch, err := readinp.Read[int]("input.txt", IntParser{})
+	ch, err := readinp.Read[int]("input.txt", strconv.Atoi)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -38,7 +32,7 @@ func day1a() {
 }
 
 func day1b() {
-	ch, err := readinp.Read[int]("input.txt", IntParser{})
+	ch, err := readinp.Read[int]("input.txt", strconv.Atoi)
 	if err != nil {
 		log.Fatal(err)
 	}

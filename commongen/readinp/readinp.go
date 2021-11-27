@@ -13,9 +13,7 @@ type Line[T any] struct {
 	Error    error
 }
 
-type Parser[T any] interface {
-	Parse(c string) (T, error)
-}
+type Parser[T any] func(c string) (T, error)
 
 // Read starts a goroutine that yields lines on the output channel.
 func Read[T any](filename string, parser Parser[T]) (chan Line[T], error) {
@@ -35,7 +33,7 @@ func Read[T any](filename string, parser Parser[T]) (chan Line[T], error) {
 				close(ch)
 				return
 			}
-			t, err := parser.Parse(strings.TrimSpace(line))
+			t, err := parser(strings.TrimSpace(line))
 			ch <- Line[T]{Contents: t, Error: err}
 			if err != nil {
 				close(ch)
