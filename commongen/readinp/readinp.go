@@ -13,10 +13,12 @@ type Line[T any] struct {
 	Error    error
 }
 
-type Parser[T any] func(c string) (T, error)
+func (l Line[T]) Get() (T, error) {
+	return l.Contents, l.Error
+}
 
 // Read starts a goroutine that yields lines on the output channel.
-func Read[T any](filename string, parser Parser[T]) (chan Line[T], error) {
+func Read[T any](filename string, parser func(c string) (T, error)) (chan Line[T], error) {
 	f, err := os.Open(filename)
 	if err != nil {
 		return nil, err

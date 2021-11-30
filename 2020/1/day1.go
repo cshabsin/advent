@@ -12,6 +12,7 @@ func main() {
 	day1b()
 }
 
+// Solution to first part of day 1 of Advent of Code 2020.
 func day1a() {
 	ch, err := readinp.Read[int]("input.txt", strconv.Atoi)
 	if err != nil {
@@ -19,10 +20,10 @@ func day1a() {
 	}
 	vals := map[int]bool{}
 	for line := range ch {
-		if line.Error != nil {
+		val, err := line.Get()
+		if err != nil {
 			log.Fatal(err)
 		}
-		val := line.Contents
 		if vals[val] {
 			fmt.Printf("%d found, answer is: %d\n", val, val*(2020-val))
 			break
@@ -31,6 +32,7 @@ func day1a() {
 	}
 }
 
+// Solution to second part of day 1 of Advent of Code 2020.
 func day1b() {
 	ch, err := readinp.Read[int]("input.txt", strconv.Atoi)
 	if err != nil {
@@ -40,10 +42,10 @@ func day1b() {
 	// map of possible third numbers to product of first two
 	seeking := map[int]int{}
 	for line := range ch {
-		if line.Error != nil {
+		val, err := line.Get()
+		if err != nil {
 			log.Fatal(err)
 		}
-		val := line.Contents
 		if prod, found := seeking[val]; found {
 			fmt.Printf("%d found, answer is: %d\n", val, val*prod)
 			break
