@@ -14,7 +14,11 @@ func Day1a() {
 		log.Fatal(err)
 	}
 	var increases int
-	prev := 193 // first one from input.txt
+	line := <-ch
+	prev, err := line.Get()
+	if err != nil {
+		log.Fatal(err)
+	}
 	for line := range ch {
 		val, err := line.Get()
 		if err != nil {
@@ -62,6 +66,5 @@ func Day1b() {
 }
 
 func add(a []int) int {
-	fmt.Println(a)
 	return a[0] + a[1] + a[2]
 }
