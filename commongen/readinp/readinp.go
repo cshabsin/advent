@@ -2,7 +2,6 @@ package readinp
 
 import (
 	"bufio"
-	"io"
 	"os"
 	"strings"
 )
@@ -23,25 +22,23 @@ func Read[T any](filename string, parser func(c string) (T, error)) (chan Line[T
 	if err != nil {
 		return nil, err
 	}
-	rdr := bufio.NewReader(f)
-	if err != nil {
-		return nil, err
-	}
+	scanner := bufio.NewScanner(f)
+	scanner.Split(bufio.ScanLines)
 	ch := make(chan Line[T])
 	go func() {
 		for {
-			line, readErr := rdr.ReadString('\n')
-			if readErr == io.EOF && line == "" { // trailing newline
-				close(ch)
-				return
-			} else if readErr != nil && readErr != io.EOF {
-				ch <- Line[T]{Error: readErr}
+			if !scanner.Scan() {
+				if err := scanner.Err(); err != nil {
+					ch <- Line[T]{Error: err}
+				}
 				close(ch)
 				return
 			}
+			line := scanner.Text()
 			t, err := parser(strings.TrimSpace(line))
 			ch <- Line[T]{Contents: t, Error: err}
-			if err != nil || readErr == io.EOF {
+			if err != nil {
+				// TODO: do we really want to stop on the first parse error?
 				close(ch)
 				return
 			}
