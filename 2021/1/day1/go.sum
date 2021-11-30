@@ -1,2 +1,4 @@
 github.com/cshabsin/advent/commongen/readinp v0.0.0-20211130024607-75e1f16a053d h1:xKMgps95YxXg0mJxkXAQ1TljPm4sTjksgcavQXk1WxM=
 github.com/cshabsin/advent/commongen/readinp v0.0.0-20211130024607-75e1f16a053d/go.mod h1:ZO1iU3+vtDONdv8ZSAxokcp8H34KoU6mpJbKmdvrjhw=
+github.com/cshabsin/advent/commongen/readinp v0.0.0-20211130034349-022088148cc7 h1:shEjMGyvHB1nyrxX1lxpPyNKZKoglTz3ztTzh9Z/1n4=
+github.com/cshabsin/advent/commongen/readinp v0.0.0-20211130034349-022088148cc7/go.mod h1:ZO1iU3+vtDONdv8ZSAxokcp8H34KoU6mpJbKmdvrjhw=
