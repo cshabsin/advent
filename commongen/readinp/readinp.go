@@ -30,14 +30,19 @@ func Read[T any](filename string, parser func(c string) (T, error)) (chan Line[T
 	ch := make(chan Line[T])
 	go func() {
 		for {
-			line, err := rdr.ReadString('\n')
-			if err == io.EOF {
+			line, readErr := rdr.ReadString('\n')
+			line = strings.TrimSpace(line)
+			if readErr == io.EOF && line == "" {
+				close(ch)
+				return
+			} else if readErr != nil && readErr != io.EOF {
+				ch <- Line[T]{Error: readErr}
 				close(ch)
 				return
 			}
-			t, err := parser(strings.TrimSpace(line))
+			t, err := parser(line)
 			ch <- Line[T]{Contents: t, Error: err}
-			if err != nil {
+			if err != nil || readErr == io.EOF {
 				close(ch)
 				return
 			}
