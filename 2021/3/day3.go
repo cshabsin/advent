@@ -8,12 +8,16 @@ import (
 )
 
 func main() {
+	fmt.Print("sample a: ")
 	Day3a("sample.txt")
 	fmt.Println("---")
+	fmt.Print("sample b: ")
 	Day3b("sample.txt")
 	fmt.Println("---")
+	fmt.Print("real a:   ")
 	Day3a("input.txt")
 	fmt.Println("---")
+	fmt.Print("real b:   ")
 	Day3b("input.txt")
 }
 
@@ -111,7 +115,6 @@ func prune(ratings []foo, bit int, greater bool) []foo {
 	} else {
 		filterBit = set < unset
 	}
-	fmt.Println(filterBit)
 	var newratings []foo
 	for _, rating := range ratings {
 		if rating[bit] == filterBit {
