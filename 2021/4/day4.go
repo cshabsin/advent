@@ -13,15 +13,15 @@ import (
 func main() {
 	fmt.Println("sample a: ")
 	Day4a("sample.txt")
-	// fmt.Println("---")
-	// fmt.Print("sample b: ")
-	// Day4b("sample.txt")
+	fmt.Println("---")
+	fmt.Print("sample b: ")
+	Day4b("sample.txt")
 	fmt.Println("---")
 	fmt.Println("real a:   ")
 	Day4a("input.txt")
-	// fmt.Println("---")
-	// fmt.Print("real b:   ")
-	// Day4b("input.txt")
+	fmt.Println("---")
+	fmt.Print("real b:   ")
+	Day4b("input.txt")
 }
 
 func parseFoo(s string) (string, error) {
@@ -196,4 +196,53 @@ func Day4a(fn string) {
 		fmt.Println(b.String())
 	}
 	fmt.Println("no winners")
+}
+
+// Day4b solves part 2 of day 4
+func Day4b(fn string) {
+	ch, err := readinp.Read(fn, parseFoo)
+	if err != nil {
+		log.Fatal(err)
+	}
+	line := <-ch
+	first, err := line.Get()
+	var balls []int
+	for _, bstr := range strings.Split(first, ",") {
+		b, err := strconv.Atoi(bstr)
+		if err != nil {
+			log.Fatal(err)
+		}
+		balls = append(balls, b)
+	}
+	<-ch
+	var boards []*board
+	for {
+		b, more, err := readBoard(ch)
+		if err == io.EOF {
+			break
+		}
+		boards = append(boards, b)
+		if !more {
+			break
+		}
+	}
+
+	won := map[int]int{}
+	var lastBoard int
+	for _, ball := range balls {
+		for bindex, b := range boards {
+			if b.winner() {
+				continue
+			}
+			b.callNum(ball)
+			if b.winner() {
+				won[bindex] = ball
+			}
+			if len(won) == len(boards) {
+				lastBoard = bindex
+				break
+			}
+		}
+	}
+	fmt.Println(boards[lastBoard].String(), won[lastBoard], boards[lastBoard].score(), won[lastBoard]*boards[lastBoard].score())
 }
