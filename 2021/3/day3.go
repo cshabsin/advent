@@ -8,19 +8,21 @@ import (
 )
 
 func main() {
+	Day3a("sample.txt")
+	fmt.Println("---")
+	Day3b("sample.txt")
+	fmt.Println("---")
 	Day3a("input.txt")
 	fmt.Println("---")
-	// Day2b("input.txt")
+	Day3b("input.txt")
 }
 
-type foo [12]bool
+type foo []bool
 
 func parseFoo(s string) (foo, error) {
 	var rc foo
-	for i, c := range s {
-		if c == '1' {
-			rc[i] = true
-		}
+	for _, c := range s {
+		rc = append(rc, c == '1')
 	}
 	return rc, nil
 }
@@ -32,27 +34,105 @@ func Day3a(fn string) {
 		log.Fatal(err)
 	}
 	var count int
-	var set [12]int
+	var set []int
 	for line := range ch {
 		l, err := line.Get()
 		if err != nil {
 			log.Fatal(err)
 		}
 		count++
-		for i := 0; i < 12; i++ {
+		if set == nil {
+			set = make([]int, len(l), len(l))
+		}
+		for i := 0; i < len(l); i++ {
 			if l[i] {
 				set[i]++
 			}
 		}
 	}
 	var gamma, epsilon int
-	for i := 0; i < 12; i++ {
-		fmt.Println(set[i], count, count/2)
+	for i := 0; i < len(set); i++ {
 		if set[i] >= count/2 {
-			gamma += 1 << (11 - i)
+			gamma += 1 << (len(set) - 1 - i)
 		} else {
-			epsilon += 1 << (11 - i)
+			epsilon += 1 << (len(set) - 1 - i)
 		}
 	}
 	fmt.Println(gamma, epsilon, gamma*epsilon)
+}
+
+// Day3b solves part 2 of day 3
+func Day3b(fn string) {
+	ch, err := readinp.Read(fn, parseFoo)
+	if err != nil {
+		log.Fatal(err)
+	}
+	var ratings []foo
+	for line := range ch {
+		l, err := line.Get()
+		if err != nil {
+			log.Fatal(err)
+		}
+		ratings = append(ratings, l)
+	}
+	oxyRating := oxyRating(ratings)
+	co2Rating := co2Rating(ratings)
+	fmt.Println(oxyRating, co2Rating, oxyRating*co2Rating)
+}
+
+func oxyRating(ratings []foo) int {
+	for i := 0; i < len(ratings[0]); i++ {
+		ratings = prune(ratings, i, true)
+		if len(ratings) == 1 {
+			break
+		}
+	}
+	var oxyRating int
+	for i := 0; i < len(ratings[0]); i++ {
+		if ratings[0][i] {
+			oxyRating += 1 << (len(ratings[0]) - 1 - i)
+		}
+	}
+	return oxyRating
+}
+
+func co2Rating(ratings []foo) int {
+	for i := 0; i < len(ratings[0]); i++ {
+		ratings = prune(ratings, i, false)
+		if len(ratings) == 1 {
+			break
+		}
+	}
+	var oxyRating int
+	for i := 0; i < len(ratings[0]); i++ {
+		if ratings[0][i] {
+			oxyRating += 1 << (len(ratings[0]) - 1 - i)
+		}
+	}
+	return oxyRating
+}
+
+func prune(ratings []foo, bit int, greater bool) []foo {
+	var set, unset int
+	for _, rating := range ratings {
+		if rating[bit] {
+			set++
+		} else {
+			unset++
+		}
+	}
+	var filterBit bool
+	if greater {
+		filterBit = set >= unset
+	} else {
+		filterBit = set < unset
+	}
+	fmt.Println(filterBit)
+	var newratings []foo
+	for _, rating := range ratings {
+		if rating[bit] == filterBit {
+			newratings = append(newratings, rating)
+		}
+	}
+	return newratings
 }
