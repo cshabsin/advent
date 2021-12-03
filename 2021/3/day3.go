@@ -75,41 +75,25 @@ func Day3b(fn string) {
 		}
 		ratings = append(ratings, l)
 	}
-	oxyRating := oxyRating(ratings)
-	co2Rating := co2Rating(ratings)
+	oxyRating := calcRating(ratings, true)
+	co2Rating := calcRating(ratings, false)
 	fmt.Println(oxyRating, co2Rating, oxyRating*co2Rating)
 }
 
-func oxyRating(ratings []foo) int {
+func calcRating(ratings []foo, oxy bool) int {
 	for i := 0; i < len(ratings[0]); i++ {
-		ratings = prune(ratings, i, true)
+		ratings = prune(ratings, i, oxy)
 		if len(ratings) == 1 {
 			break
 		}
 	}
-	var oxyRating int
+	var rating int
 	for i := 0; i < len(ratings[0]); i++ {
 		if ratings[0][i] {
-			oxyRating += 1 << (len(ratings[0]) - 1 - i)
+			rating += 1 << (len(ratings[0]) - 1 - i)
 		}
 	}
-	return oxyRating
-}
-
-func co2Rating(ratings []foo) int {
-	for i := 0; i < len(ratings[0]); i++ {
-		ratings = prune(ratings, i, false)
-		if len(ratings) == 1 {
-			break
-		}
-	}
-	var oxyRating int
-	for i := 0; i < len(ratings[0]); i++ {
-		if ratings[0][i] {
-			oxyRating += 1 << (len(ratings[0]) - 1 - i)
-		}
-	}
-	return oxyRating
+	return rating
 }
 
 func prune(ratings []foo, bit int, greater bool) []foo {
