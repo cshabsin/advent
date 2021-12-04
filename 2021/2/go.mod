@@ -7,4 +7,4 @@ replace (
 	github.com/cshabsin/advent/commongen/readinp => ../../commongen/readinp
 )
 
-require github.com/cshabsin/advent/commongen/readinp v0.0.0-20211130024607-75e1f16a053d // indirect
+require github.com/cshabsin/advent/commongen/readinp v0.0.0-20211130024607-75e1f16a053d
