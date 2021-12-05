@@ -6,7 +6,32 @@ import (
 )
 
 func main() {
+	s := state{
+		playerHP:    15,
+		playerMana:  500,
+		playerArmor: 0,
+		bossHP:      500,
+		effects: map[string]effect{
+			"Shield": {
+				armor:    5,
+				duration: 4,
+			},
+			"Poison": {
+				dmg:      5,
+				duration: 6,
+			},
+		},
+	}
+	fmt.Println(s)
+	for len(s.effects) != 0 {
+		s = s.applyEffects()
+		fmt.Println(s)
+	}
 	Day22a()
+}
+
+func print(a ...interface{}) {
+	fmt.Println(a...)
 }
 
 type effect struct {
@@ -63,6 +88,7 @@ var (
 // boss: 55 hp, 8 dmg
 
 type state struct {
+	spells                            []string
 	playerHP, playerMana, playerArmor int
 	bossHP, bossDmg                   int
 	effects                           map[string]effect
@@ -70,6 +96,7 @@ type state struct {
 
 func (s state) applyEffects() state {
 	newState := state{
+		spells:     s.spells,
 		playerHP:   s.playerHP,
 		playerMana: s.playerMana,
 		bossHP:     s.bossHP,
@@ -119,16 +146,21 @@ func (s state) trySpell(cost, prune int, sp spell) (bool, int) {
 		return false, 0
 	}
 	if sp.cost > s.playerMana {
+		print("too expensive:", sp.name)
 		return false, 0
 	}
+	print("casting", sp.name)
+	s.spells = append(s.spells, sp.name)
 	s = s.applyEffects()
 	if _, ok := s.effects[sp.name]; ok {
 		return false, 0 // can't cast a spell that's in effect.
 	}
 	if s.win() {
+		print("win with cost", cost)
 		return true, cost
 	}
 	if s.lose() {
+		print("lose")
 		return false, 0
 	}
 	if sp.duration != 0 {
@@ -139,29 +171,36 @@ func (s state) trySpell(cost, prune int, sp spell) (bool, int) {
 	}
 	cost += sp.cost
 	if s.win() {
+		print("win with cost", cost)
 		return true, cost
 	}
 	if s.lose() {
+		print("lose")
 		return false, 0
 	}
 	s = s.applyEffects()
 	if s.win() {
+		print("win with cost", cost)
 		return true, cost
 	}
 	if s.lose() {
+		print("lose")
 		return false, 0
 	}
 	s.playerHP -= s.bossDmg - s.playerArmor
 	if s.win() {
+		print("win with cost", cost)
 		return true, cost
 	}
 	if s.lose() {
+		print("lose")
 		return false, 0
 	}
-	return true, s.try(cost, prune-sp.cost)
+	return true, s.try(cost, prune)
 }
 
-func (s state) try(cost, prune int) int {
+func (s state) try(parentCost, prune int) int {
+	print(fmt.Sprintf("trying state %+v", s))
 	minCost := prune
 	for _, spell := range spells {
 		win, cost := s.trySpell(0, minCost, spell)
@@ -169,7 +208,7 @@ func (s state) try(cost, prune int) int {
 			minCost = cost
 		}
 	}
-	return cost + minCost
+	return parentCost + minCost
 }
 
 func Day22a() {
