@@ -9,8 +9,10 @@ import (
 
 func main() {
 	day5a("sample.txt")
+	day5b("sample.txt")
 	fmt.Println("---")
 	day5a("input.txt")
+	day5b("input.txt")
 }
 
 type board struct {
@@ -62,6 +64,48 @@ func day5a(fn string) {
 			for x := first; x <= second; x++ {
 				b.incr(x, d.y1)
 			}
+		}
+	}
+	var cnt int
+	for _, l := range b.data {
+		for _, n := range l {
+			if n > 1 {
+				cnt++
+			}
+		}
+	}
+	fmt.Println(cnt)
+}
+
+func day5b(fn string) {
+	ch, err := readinp.Read(fn, parse)
+	if err != nil {
+		log.Fatal(err)
+	}
+	var b board
+	for line := range ch {
+		d, err := line.Get()
+		if err != nil {
+			log.Fatal(err)
+		}
+		dx := 0
+		if d.x1 < d.x2 {
+			dx = 1
+		} else if d.x1 > d.x2 {
+			dx = -1
+		}
+		dy := 0
+		if d.y1 < d.y2 {
+			dy = 1
+		} else if d.y1 > d.y2 {
+			dy = -1
+		}
+		x, y := d.x1, d.y1
+		b.incr(x, y)
+		for x != d.x2 || y != d.y2 {
+			x += dx
+			y += dy
+			b.incr(x, y)
 		}
 	}
 	var cnt int
