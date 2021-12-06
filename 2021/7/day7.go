@@ -8,22 +8,31 @@ import (
 )
 
 func main() {
-	day6a("sample.txt")
+	day7a("sample.txt")
 	// day6b("sample.txt")
 	fmt.Println("---")
-	day6a("input.txt")
+	day7a("input.txt")
 	// day6b("input.txt")
 }
 
-func day6a(fn string) {
+func day7a(fn string) {
 	ch, err := readinp.Read(fn, parse)
 	if err != nil {
 		log.Fatal(err)
 	}
-	for line := range ch {
-		_, err := line.Get()
-		if err != nil {
-			log.Fatal(err)
+	line := <-ch
+	dat, err := line.Get()
+	if err != nil {
+		log.Fatal(err)
+	}
+	var best int
+	bestFuel := 99999999
+	for i := 0; i < dat.max; i++ {
+		f := dat.fuel(i)
+		if f < bestFuel {
+			best = i
+			bestFuel = f
 		}
 	}
+	fmt.Println(best, bestFuel)
 }
