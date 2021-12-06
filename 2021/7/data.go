@@ -40,7 +40,7 @@ func (d *data) fuel(tgt int) int {
 		if dst < 0 {
 			dst = -dst
 		}
-		fuel += dst * cnt
+		fuel += (dst * (dst + 1)) * cnt / 2
 	}
 	return fuel
 }
