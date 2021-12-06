@@ -8,22 +8,25 @@ import (
 )
 
 func main() {
-	day6a("sample.txt")
-	// day6b("sample.txt")
+	day6("sample.txt", 80)
+	day6("sample.txt", 256)
 	fmt.Println("---")
-	day6a("input.txt")
-	// day6b("input.txt")
+	day6("input.txt", 80)
+	day6("input.txt", 256)
 }
 
-func day6a(fn string) {
+func day6(fn string, iter int) {
 	ch, err := readinp.Read(fn, parse)
 	if err != nil {
 		log.Fatal(err)
 	}
-	for line := range ch {
-		_, err := line.Get()
-		if err != nil {
-			log.Fatal(err)
-		}
+	line := <-ch
+	data, err := line.Get()
+	if err != nil {
+		log.Fatal(err)
 	}
+	for i := 0; i < iter; i++ {
+		data = data.nextgen()
+	}
+	fmt.Println(data.len())
 }

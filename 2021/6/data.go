@@ -6,9 +6,24 @@ import (
 	"strings"
 )
 
-type data struct {
-	x1, y1 int
-	x2, y2 int
+type data []int
+
+func (d data) nextgen() data {
+	d2 := make(data, 9, 9)
+	for i := 1; i < 9; i++ {
+		d2[i-1] = d[i]
+	}
+	d2[6] += d[0]
+	d2[8] = d[0]
+	return d2
+}
+
+func (d data) len() int {
+	var len int
+	for _, cnt := range d {
+		len += cnt
+	}
+	return len
 }
 
 func atoi(s string) int {
@@ -19,14 +34,10 @@ func atoi(s string) int {
 	return i
 }
 
-func parse(line string) (*data, error) {
-	pairs := strings.Split(line, " -> ")
-	first := strings.Split(pairs[0], ",")
-	second := strings.Split(pairs[1], ",")
-	return &data{
-		x1: atoi(first[0]),
-		y1: atoi(first[1]),
-		x2: atoi(second[0]),
-		y2: atoi(second[1]),
-	}, nil
+func parse(line string) (data, error) {
+	d := make(data, 9, 9)
+	for _, val := range strings.Split(line, ",") {
+		d[atoi(val)]++
+	}
+	return d, nil
 }
