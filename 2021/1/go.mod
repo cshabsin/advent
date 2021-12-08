@@ -8,5 +8,3 @@ replace (
 )
 
 require github.com/cshabsin/advent/2021/1/day1 v0.0.0-00010101000000-000000000000
-
-require github.com/cshabsin/advent/commongen/readinp v0.0.0-20211130024607-75e1f16a053d // indirect
