@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/cshabsin/advent/commongen/set"
+	"github.com/cshabsin/advent/commongen/slice"
 )
 
 type data struct {
@@ -54,24 +55,12 @@ func (m mapping) translate(s string) int {
 	}
 	sort.Ints(sortedSegments)
 	for i, iSegs := range normalMap {
-		if sliceEq(sortedSegments, iSegs) {
+		if slice.Eq(sortedSegments, iSegs) {
 			return i
 		}
 	}
 	log.Fatalf("whoa: %q, %v", s, m)
 	return 0
-}
-
-func sliceEq[T comparable](a, b []T) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i := range a {
-		if a[i] != b[i] {
-			return false
-		}
-	}
-	return true
 }
 
 func (d data) allEntries() []string {

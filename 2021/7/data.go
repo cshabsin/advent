@@ -1,9 +1,9 @@
 package main
 
 import (
-	"log"
-	"strconv"
 	"strings"
+
+	"github.com/cshabsin/advent/commongen/readinp"
 )
 
 type data struct {
@@ -11,20 +11,12 @@ type data struct {
 	max int
 }
 
-func atoi(s string) int {
-	i, err := strconv.Atoi(s)
-	if err != nil {
-		log.Fatal(err)
-	}
-	return i
-}
-
 func parse(line string) (data, error) {
 	d := data{
 		m: map[int]int{},
 	}
 	for _, val := range strings.Split(line, ",") {
-		v := atoi(val)
+		v := readinp.Atoi(val)
 		d.m[v]++
 		if v > d.max {
 			d.max = v

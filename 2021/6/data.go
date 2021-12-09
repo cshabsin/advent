@@ -1,9 +1,9 @@
 package main
 
 import (
-	"log"
-	"strconv"
 	"strings"
+
+	"github.com/cshabsin/advent/commongen/readinp"
 )
 
 type data []int
@@ -26,18 +26,10 @@ func (d data) len() int {
 	return len
 }
 
-func atoi(s string) int {
-	i, err := strconv.Atoi(s)
-	if err != nil {
-		log.Fatal(err)
-	}
-	return i
-}
-
 func parse(line string) (data, error) {
 	d := make(data, 9, 9)
 	for _, val := range strings.Split(line, ",") {
-		d[atoi(val)]++
+		d[readinp.Atoi(val)]++
 	}
 	return d, nil
 }

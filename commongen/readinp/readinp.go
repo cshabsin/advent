@@ -2,7 +2,9 @@ package readinp
 
 import (
 	"bufio"
+	"log"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -45,4 +47,13 @@ func Read[T any](filename string, parser func(c string) (T, error)) (chan Line[T
 		}
 	}()
 	return ch, nil
+}
+
+// Atoi is a wrapper around strconv.Atoi that logs fatal on error.
+func Atoi(s string) int {
+	v, err := strconv.Atoi(s)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return v
 }
