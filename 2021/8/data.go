@@ -4,6 +4,8 @@ import (
 	"log"
 	"sort"
 	"strings"
+
+	"github.com/cshabsin/advent/commongen/set"
 )
 
 type data struct {
@@ -78,11 +80,11 @@ func (d data) allEntries() []string {
 
 func (d data) getMapping() mapping {
 	// map of signal to possible target segments
-	possibilities := map[rune]map[int]bool{}
+	possibilities := map[rune]set.Set[int]{}
 	for i := 'a'; i < 'h'; i++ {
-		possibilities[i] = map[int]bool{}
+		possibilities[i] = set.Set[int]{}
 		for j := 0; j < 7; j++ {
-			possibilities[i][j] = true
+			possibilities[i].Add(j)
 		}
 	}
 	for _, ent := range d.allEntries() {
@@ -90,17 +92,17 @@ func (d data) getMapping() mapping {
 		case 2:
 			// only 1
 			for i := 0; i < len(ent); i++ {
-				possibilities[rune(ent[i])] = setOnly(possibilities[rune(ent[i])], makeMap(normalMap[1]...))
+				possibilities[rune(ent[i])] = set.Intersect(possibilities[rune(ent[i])], set.Make(normalMap[1]...))
 			}
 		case 3:
 			// only 7
 			for i := 0; i < len(ent); i++ {
-				possibilities[rune(ent[i])] = setOnly(possibilities[rune(ent[i])], makeMap(normalMap[7]...))
+				possibilities[rune(ent[i])] = set.Intersect(possibilities[rune(ent[i])], set.Make(normalMap[7]...))
 			}
 		case 4:
 			// only 4
 			for i := 0; i < len(ent); i++ {
-				possibilities[rune(ent[i])] = setOnly(possibilities[rune(ent[i])], makeMap(normalMap[4]...))
+				possibilities[rune(ent[i])] = set.Intersect(possibilities[rune(ent[i])], set.Make(normalMap[4]...))
 			}
 		case 5:
 			// 2, 3, 5
@@ -123,7 +125,7 @@ func (d data) getMapping() mapping {
 		case 7:
 			// only 8
 			for i := 0; i < len(ent); i++ {
-				possibilities[rune(ent[i])] = setOnly(possibilities[rune(ent[i])], makeMap(normalMap[8]...))
+				possibilities[rune(ent[i])] = set.Intersect(possibilities[rune(ent[i])], set.Make(normalMap[8]...))
 			}
 		}
 	}
@@ -155,30 +157,12 @@ func (d data) getMapping() mapping {
 	return rc
 }
 
-func getTheVal(m map[int]bool) int {
+func getTheVal(m set.Set[int]) int {
 	for k := range m {
 		return k
 	}
 	log.Fatal("no val?")
 	return 0
-}
-
-func makeMap[T comparable](vs ...T) map[T]bool {
-	m := map[T]bool{}
-	for _, v := range vs {
-		m[v] = true
-	}
-	return m
-}
-
-func setOnly(m map[int]bool, only map[int]bool) map[int]bool {
-	r := map[int]bool{}
-	for v := range m {
-		if only[v] {
-			r[v] = true
-		}
-	}
-	return r
 }
 
 func getUnsetSignals(ent string) []rune {
