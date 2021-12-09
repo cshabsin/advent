@@ -1,24 +1,14 @@
 package main
 
-import (
-	"strings"
-)
+import "fmt"
 
-type data struct {
-	line     string
-	patterns []string
-	output   []string
-}
-
-func parse(line string) (data, error) {
-	var d data
-	d.line = line
-	parts := strings.Split(line, "|")
-	for _, out := range strings.Split(parts[0], " ") {
-		d.patterns = append(d.patterns, strings.TrimSpace(out))
-	}
-	for _, out := range strings.Split(parts[1], " ") {
-		d.output = append(d.output, strings.TrimSpace(out))
+func parse(line string) ([]int, error) {
+	var d []int
+	for _, c := range line {
+		if c < '0' || c > '9' {
+			return nil, fmt.Errorf("in line %q, illegal character %c", line, c)
+		}
+		d = append(d, int(c-'0'))
 	}
 	return d, nil
 }
