@@ -18,10 +18,13 @@ func day10a(fn string) {
 	if err != nil {
 		log.Fatal(err)
 	}
+	var total int
 	for line := range ch {
-		_, err := line.Get()
+		score, err := line.Get()
 		if err != nil {
 			log.Fatal(err)
 		}
+		total += score
 	}
+	fmt.Println(total)
 }
