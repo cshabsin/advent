@@ -29,46 +29,21 @@ func day11a(fn string) {
 		}
 		board = append(board, row)
 	}
-	var flashes int
-	for i := 0; i < 100; i++ {
+	var flashes100 int
+	var i int
+	for {
+		i++
 		var f int
 		f, board = board.next()
-		flashes += f
-		// fmt.Println(f)
-		// fmt.Println(board, "---")
+		if i < 100 {
+			flashes100 += f
+		}
+		if f == 100 {
+			break
+		}
 	}
-	fmt.Println(flashes)
+	fmt.Println(flashes100, i)
 }
-
-// func day11b(fn string) {
-// 	ch, err := readinp.Read(fn, parse)
-// 	if err != nil {
-// 		log.Fatal(err)
-// 	}
-// 	var board board
-// 	for line := range ch {
-// 		row, err := line.Get()
-// 		if err != nil {
-// 			log.Fatal(err)
-// 		}
-// 		board = append(board, row)
-// 	}
-// 	var lows [][2]int
-// 	for r := range board {
-// 		for c := range board[r] {
-// 			if board.isLow(r, c) {
-// 				lows = append(lows, [2]int{r, c})
-// 			}
-// 		}
-// 	}
-// 	var basins []int
-// 	for _, low := range lows {
-// 		r, c := low[0], low[1]
-// 		basins = append(basins, board.basinSize(r, c))
-// 	}
-// 	sort.Sort(sort.IntSlice(basins))
-// 	fmt.Println(basins)
-// }
 
 type board [][]int
 
