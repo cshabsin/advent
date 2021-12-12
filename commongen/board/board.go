@@ -46,9 +46,7 @@ func (b Board[T]) String() string {
 	var s string
 	for r := range b {
 		for c := range b[r] {
-			var v fmt.Stringer
-			v = b[r][c]
-			s += v.String() + delim(b[r][c])
+			s += b[r][c].String() + delim(b[r][c])
 		}
 		s += "\n"
 	}
