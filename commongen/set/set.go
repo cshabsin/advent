@@ -22,6 +22,14 @@ func (s Set[T]) Remove(value T) {
 	delete(s, value)
 }
 
+func (s Set[T]) Clone() Set[T] {
+	clone := Set[T]{}
+	for k := range s {
+		clone.Add(k)
+	}
+	return clone
+}
+
 func Intersect[T comparable](m Set[T], only Set[T]) Set[T] {
 	r := Set[T]{}
 	for v := range m {
