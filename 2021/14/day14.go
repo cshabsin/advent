@@ -10,9 +10,9 @@ import (
 
 func main() {
 	part1("sample.txt")
-	part2("sample.txt")
-	fmt.Println("---")
 	part1("input.txt")
+	fmt.Println("---")
+	part2("sample.txt")
 	part2("input.txt")
 }
 
@@ -25,28 +25,64 @@ func part1(fn string) {
 	for i := 0; i < 10; i++ {
 		s = in.apply(s)
 	}
+	max, min := count(s)
+	fmt.Println(max - min)
+}
+
+func part2(fn string) {
+	in, err := load(fn)
+	if err != nil {
+		log.Fatal(err)
+	}
+	counts := in.count2(in.template, 40)
+	fmt.Println(maxmin(counts))
+}
+
+func (form in) count2(s string, depth int) map[rune]int {
+	counts := map[rune]int{}
+	for i, r := range s {
+		if i == len(s)-1 {
+			counts[r]++
+			break
+		}
+		insert := form.steps[s[i:i+2]]
+		form.c2h(string(s[i])+insert, depth-1, counts)
+	}
+	return counts
+}
+
+func (form in) c2h(s string, depth int, counts map[rune]int) {
+	child := string(rune(s[0])) + form.steps[s]
+	if depth == 1 {
+		for _, r := range child {
+			counts[r]++
+		}
+		return
+	}
+	form.c2h(child, depth-1, counts)
+	form.c2h(form.steps[s]+string(rune(s[1])), depth-1, counts)
+}
+
+func count(s string) (int, int) {
 	counts := map[rune]int{}
 	for _, b := range s {
 		counts[b] = counts[b] + 1
 	}
+	return maxmin(counts)
+}
+
+func maxmin(counts map[rune]int) (int, int) {
 	min := 9999999
 	max := 0
-	var minR, maxR rune
-	for r, cnt := range counts {
+	for _, cnt := range counts {
 		if cnt > max {
-			maxR = r
 			max = cnt
 		}
 		if cnt < min {
-			minR = r
 			min = cnt
 		}
 	}
-	fmt.Println(max, maxR, min, minR, max-min)
-}
-
-func part2(fn string) {
-
+	return max, min
 }
 
 type in struct {
