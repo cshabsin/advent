@@ -17,36 +17,56 @@ func main() {
 }
 
 func part1(fn string) {
-	_, err := load(fn)
+	in, err := load(fn)
 	if err != nil {
 		log.Fatal(err)
 	}
+	s := in.template
+	for i := 0; i < 10; i++ {
+		s = in.apply(s)
+	}
+	counts := map[rune]int{}
+	for _, b := range s {
+		counts[b] = counts[b] + 1
+	}
+	min := 9999999
+	max := 0
+	var minR, maxR rune
+	for r, cnt := range counts {
+		if cnt > max {
+			maxR = r
+			max = cnt
+		}
+		if cnt < min {
+			minR = r
+			min = cnt
+		}
+	}
+	fmt.Println(max, maxR, min, minR, max-min)
 }
 
 func part2(fn string) {
 
 }
 
-type pair struct {
-	a, b string
-}
-
-func (p pair) first() string {
-	return p.a
-}
-
-func (p pair) second() string {
-	return p.b
-}
-
-func from(s string) pair {
-	fields := strings.Split(s, " -> ")
-	return pair{fields[0], fields[1]}
-}
-
 type in struct {
 	template string
-	steps    []pair
+	steps    map[string]string
+}
+
+func (form in) apply(s string) string {
+	var t string
+	for i := range s {
+		if i == len(s)-1 {
+			t += string(s[i])
+			break
+		}
+		t += string(s[i])
+		if insert, ok := form.steps[s[i:i+2]]; ok {
+			t += insert
+		}
+	}
+	return t
 }
 
 func load(fn string) (*in, error) {
@@ -59,14 +79,15 @@ func load(fn string) (*in, error) {
 	if err != nil {
 		return nil, err
 	}
-	rc := &in{template: s}
+	rc := &in{template: s, steps: map[string]string{}}
 	<-ch // skip a line
 	for line := range ch {
 		s, err := line.Get()
 		if err != nil {
 			return nil, err
 		}
-		rc.steps = append(rc.steps, from(s))
+		fields := strings.Split(s, " -> ")
+		rc.steps[fields[0]] = fields[1]
 	}
 	return rc, nil
 }
