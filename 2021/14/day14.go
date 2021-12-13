@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/cshabsin/advent/commongen/readinp"
 )
@@ -26,18 +27,46 @@ func part2(fn string) {
 
 }
 
-func load(fn string) (string, error) {
+type pair struct {
+	a, b string
+}
+
+func (p pair) first() string {
+	return p.a
+}
+
+func (p pair) second() string {
+	return p.b
+}
+
+func from(s string) pair {
+	fields := strings.Split(s, " -> ")
+	return pair{fields[0], fields[1]}
+}
+
+type in struct {
+	template string
+	steps    []pair
+}
+
+func load(fn string) (*in, error) {
 	ch, err := readinp.Read(fn, readinp.S)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	var tot string
+	line := <-ch
+	s, err := line.Get()
+	if err != nil {
+		return nil, err
+	}
+	rc := &in{template: s}
+	<-ch // skip a line
 	for line := range ch {
 		s, err := line.Get()
 		if err != nil {
-			return "", err
+			return nil, err
 		}
-		tot += s + "\n"
+		rc.steps = append(rc.steps, from(s))
 	}
-	return tot, nil
+	return rc, nil
 }
