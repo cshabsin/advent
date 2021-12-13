@@ -21,12 +21,21 @@ func part1(fn string) {
 	if err != nil {
 		log.Fatal(err)
 	}
+	fmt.Println("new")
+	counts := in.count2(in.template, 10)
+	fmt.Println(counts)
 	s := in.template
 	for i := 0; i < 10; i++ {
 		s = in.apply(s)
 	}
-	max, min := count(s)
+	fmt.Println("old")
+	counts = count(s)
+	fmt.Println(counts)
+	max, min := maxmin(counts)
 	fmt.Println(max - min)
+}
+
+func dbg(v ...interface{}) {
 }
 
 func part2(fn string) {
@@ -52,8 +61,10 @@ func (form in) count2(s string, depth int) map[rune]int {
 }
 
 func (form in) c2h(s string, depth int, counts map[rune]int) {
+	dbg(s, depth)
 	child := string(rune(s[0])) + form.steps[s]
 	if depth == 1 {
+		dbg("counting", child)
 		for _, r := range child {
 			counts[r]++
 		}
@@ -63,12 +74,12 @@ func (form in) c2h(s string, depth int, counts map[rune]int) {
 	form.c2h(form.steps[s]+string(rune(s[1])), depth-1, counts)
 }
 
-func count(s string) (int, int) {
+func count(s string) map[rune]int {
 	counts := map[rune]int{}
 	for _, b := range s {
 		counts[b] = counts[b] + 1
 	}
-	return maxmin(counts)
+	return counts
 }
 
 func maxmin(counts map[rune]int) (int, int) {
