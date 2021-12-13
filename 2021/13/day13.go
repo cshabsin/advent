@@ -51,14 +51,10 @@ func perform(b map[board.Coord]bool, f fold) map[board.Coord]bool {
 		for co := range b {
 			c := co.C()
 			if c > f.val {
-				fmt.Println("[", f.val, "] from", c, "to", f.val*2-c)
 				c = f.val*2 - c // val-(c-val)
 				if c < 0 {
 					continue
 				}
-			}
-			if newB[board.MakeCoord(co.R(), c)] {
-				fmt.Println("overlap", co.R(), c)
 			}
 			newB[board.MakeCoord(co.R(), c)] = true
 		}
@@ -73,9 +69,6 @@ func perform(b map[board.Coord]bool, f fold) map[board.Coord]bool {
 			if r < 0 {
 				continue
 			}
-		}
-		if newB[board.MakeCoord(r, co.C())] {
-			fmt.Println("overlap", r, co.C())
 		}
 		newB[board.MakeCoord(r, co.C())] = true
 	}

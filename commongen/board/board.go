@@ -2,20 +2,26 @@ package board
 
 import (
 	"fmt"
+	"log"
 )
+
+const modulus = 10000
 
 type Coord int
 
 func MakeCoord(r, c int) Coord {
-	return Coord(r*10000 + c)
+	if c >= modulus {
+		log.Fatal("col ", c, " doesn't fit in modulus, increase")
+	}
+	return Coord(r*modulus + c)
 }
 
 func (c Coord) R() int {
-	return int(c / 10000)
+	return int(c / modulus)
 }
 
 func (c Coord) C() int {
-	return int(c % 10000)
+	return int(c % modulus)
 }
 
 func (c Coord) Apply(diff [2]int) Coord {
