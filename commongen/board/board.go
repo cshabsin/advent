@@ -7,15 +7,15 @@ import (
 type Coord int
 
 func MakeCoord(r, c int) Coord {
-	return Coord(r*1000 + c)
+	return Coord(r*10000 + c)
 }
 
 func (c Coord) R() int {
-	return int(c / 1000)
+	return int(c / 10000)
 }
 
 func (c Coord) C() int {
-	return int(c % 1000)
+	return int(c % 10000)
 }
 
 func (c Coord) Apply(diff [2]int) Coord {

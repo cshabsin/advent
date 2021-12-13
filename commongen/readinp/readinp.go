@@ -44,6 +44,10 @@ func Read[T any](filename string, parser func(c string) (T, error)) (chan Line[T
 	return ch, nil
 }
 
+func S(s string) (string, error) {
+	return s, nil
+}
+
 // Atoi is a wrapper around strconv.Atoi that logs fatal on error.
 func Atoi(s string) int {
 	v, err := strconv.Atoi(s)
