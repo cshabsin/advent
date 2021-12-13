@@ -9,6 +9,11 @@ import (
 )
 
 func main() {
+	in, _ := load("input.txt")
+	counts := in.count2("SHBN", 4)
+	fmt.Println(counts)
+	fmt.Println("---")
+
 	part1("sample.txt")
 	part1("input.txt")
 	fmt.Println("---")
@@ -56,6 +61,7 @@ func (form in) count2(s string, depth int) map[rune]int {
 		}
 		insert := form.steps[s[i:i+2]]
 		form.c2h(string(s[i])+insert, depth-1, counts)
+		form.c2h(insert+string(s[i+1]), depth-1, counts)
 	}
 	return counts
 }
