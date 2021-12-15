@@ -10,18 +10,23 @@ import (
 )
 
 func main() {
-	part1("sample.txt")
-	part1("input.txt")
+	part1("sample.txt", false)
+	part1("sample.txt", true)
+	part1("input.txt", false)
+	part1("input.txt", true)
 	// part2("sample.txt")
 	// fmt.Println("---")
 	// part2("input.txt")
 }
 
-func part1(fn string) {
-	fmt.Println("---", fn, ":")
+func part1(fn string, isQuint bool) {
+	fmt.Println("---", fn, isQuint, ":")
 	brd, err := load(fn)
 	if err != nil {
 		log.Fatal(err)
+	}
+	if isQuint {
+		brd = quintuple(brd)
 	}
 	totals := make(board.Board[intS], len(brd), len(brd))
 	for i := range totals {
@@ -73,4 +78,27 @@ type intS int
 
 func (i intS) String() string {
 	return strconv.Itoa(int(i))
+}
+
+func quintuple(brd board.Board[intS]) board.Board[intS] {
+	var out board.Board[intS]
+	for r := 0; r < 5; r++ {
+		for rx := 0; rx < len(brd); rx++ {
+			var row []intS
+			for c := 0; c < 5; c++ {
+				for cx := 0; cx < len(brd[0]); cx++ {
+					row = append(row, dumbmod(brd.Get(rx, cx)+intS(r+c)))
+				}
+			}
+			out = append(out, row)
+		}
+	}
+	return out
+}
+
+func dumbmod(i intS) intS {
+	for i > 9 {
+		return i - 9
+	}
+	return i
 }
