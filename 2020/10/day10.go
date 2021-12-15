@@ -6,21 +6,22 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/cshabsin/advent/common/readinp"
+	"github.com/cshabsin/advent/commongen/readinp"
 )
 
 func main() {
-	ch, err := readinp.Read("input.txt")
+	ch, err := readinp.Read("input.txt", readinp.S)
 	if err != nil {
 		log.Fatal(err)
 	}
 	joltages := map[int]bool{0: true}
 	maxJ := 0
 	for line := range ch {
-		if line.Error != nil {
+		contents, err := line.Get()
+		if err != nil {
 			log.Fatal(err)
 		}
-		j, err := strconv.Atoi(strings.TrimSpace(*line.Contents))
+		j, err := strconv.Atoi(strings.TrimSpace(contents))
 		if err != nil {
 			log.Fatal(err)
 		}
