@@ -41,7 +41,7 @@ func part1(fn string, isQuint bool) {
 	target := board.MakeCoord(len(brd)-1, len(brd[0])-1)
 	distBrd.initialize(current, 0)
 	for {
-		distBrd.visualize(brd)
+		//distBrd.visualize(brd, current)
 		if current == target {
 			fmt.Println(distBrd.get(current))
 			return
@@ -97,22 +97,30 @@ func (d *distanceBoard) remove(co board.Coord) {
 }
 
 func (d *distanceBoard) next() board.Coord {
-	dist := d.nextDistances[0]
-	next := d.nexts[dist][0]
-	d.nexts[dist] = d.nexts[dist][1:len(d.nexts[dist])]
-	if len(d.nexts[dist]) == 0 {
-		d.nextDistances = d.nextDistances[1:len(d.nextDistances)]
-		delete(d.nexts, dist)
+	var next board.Coord
+	for {
+		dist := d.nextDistances[0]
+		next = d.nexts[dist][0]
+		d.nexts[dist] = d.nexts[dist][1:len(d.nexts[dist])]
+		if len(d.nexts[dist]) == 0 {
+			d.nextDistances = d.nextDistances[1:len(d.nextDistances)]
+			delete(d.nexts, dist)
+		}
+		if d.isUnvisited(next) {
+			break
+		}
 	}
 	return next
 }
 
-func (d *distanceBoard) visualize(brd board.Board[intS]) {
+func (d *distanceBoard) visualize(brd board.Board[intS], current board.Coord) {
 	for r := 0; r < brd.Height(); r++ {
 		for c := 0; c < brd.Width(); c++ {
 			co := board.MakeCoord(r, c)
 			var format string
-			if d.isUnvisited(co) {
+			if co == current {
+				format = "\033[1;33m%s\033[0m"
+			} else if d.isUnvisited(co) {
 				format = "\033[1;32m%s\033[0m"
 			} else {
 				format = "\033[0;36m%s\033[0m"
