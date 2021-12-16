@@ -100,6 +100,14 @@ func (b Board[T]) AllCoords() []Coord {
 	return coords
 }
 
+func (b Board[T]) Height() int {
+	return len(b)
+}
+
+func (b Board[T]) Width() int {
+	return len(b[0])
+}
+
 func (b Board[T]) InBounds(co Coord) bool {
 	if co.R() < 0 || co.C() < 0 {
 		return false

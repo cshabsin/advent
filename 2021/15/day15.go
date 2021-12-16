@@ -29,35 +29,36 @@ func part1(fn string, isQuint bool) {
 	if isQuint {
 		brd = quintuple(brd)
 	}
-	unvisited := distanceBoard{
-		ds:        make(map[board.Coord]intS),
-		nexts:     make(map[intS][]board.Coord),
+	distBrd := distanceBoard{
+		distances: make(map[board.Coord]intS),
 		unvisited: make(map[board.Coord]bool),
+		nexts:     make(map[intS][]board.Coord),
 	}
 	for _, co := range brd.AllCoords() {
-		unvisited.setRaw(co, 99999999999)
+		distBrd.initialize(co, 99999999999)
 	}
 	current := board.MakeCoord(0, 0)
 	target := board.MakeCoord(len(brd)-1, len(brd[0])-1)
-	unvisited.setRaw(current, 0)
+	distBrd.initialize(current, 0)
 	for {
+		distBrd.visualize(brd)
 		if current == target {
-			fmt.Println(unvisited.get(current))
+			fmt.Println(distBrd.get(current))
 			return
 		}
 		for _, neigh := range brd.Neighbors4(current) {
-			if !unvisited.has(neigh) {
+			if !distBrd.isUnvisited(neigh) {
 				continue
 			}
-			unvisited.set(neigh, unvisited.get(current)+brd.GetCoord(neigh))
+			distBrd.set(neigh, distBrd.get(current)+brd.GetCoord(neigh))
 		}
-		unvisited.remove(current)
-		current = unvisited.next()
+		distBrd.remove(current)
+		current = distBrd.next()
 	}
 }
 
 type distanceBoard struct {
-	ds        map[board.Coord]intS
+	distances map[board.Coord]intS
 	unvisited map[board.Coord]bool
 
 	// map from distance to list of coordinates with that size
@@ -69,7 +70,7 @@ type distanceBoard struct {
 
 func (d *distanceBoard) set(co board.Coord, dist intS) {
 	// fmt.Println("setting", co, "to", dist)
-	d.ds[co] = dist
+	d.distances[co] = dist
 	if d.nexts[dist] == nil {
 		d.nextDistances = append(d.nextDistances, dist)
 		sort.Slice(d.nextDistances, func(i, j int) bool { return d.nextDistances[i] < d.nextDistances[j] })
@@ -77,18 +78,18 @@ func (d *distanceBoard) set(co board.Coord, dist intS) {
 	d.nexts[dist] = append(d.nexts[dist], co)
 }
 
-func (d *distanceBoard) setRaw(co board.Coord, val intS) {
-	d.ds[co] = val
+func (d *distanceBoard) initialize(co board.Coord, val intS) {
+	d.distances[co] = val
 	d.unvisited[co] = true
 	// don't put this distance into the nodes to consider for next current node.
 }
 
-func (d *distanceBoard) has(co board.Coord) bool {
+func (d *distanceBoard) isUnvisited(co board.Coord) bool {
 	return d.unvisited[co]
 }
 
 func (d *distanceBoard) get(co board.Coord) intS {
-	return d.ds[co]
+	return d.distances[co]
 }
 
 func (d *distanceBoard) remove(co board.Coord) {
@@ -104,6 +105,23 @@ func (d *distanceBoard) next() board.Coord {
 		delete(d.nexts, dist)
 	}
 	return next
+}
+
+func (d *distanceBoard) visualize(brd board.Board[intS]) {
+	for r := 0; r < brd.Height(); r++ {
+		for c := 0; c < brd.Width(); c++ {
+			co := board.MakeCoord(r, c)
+			var format string
+			if d.isUnvisited(co) {
+				format = "\033[1;32m%s\033[0m"
+			} else {
+				format = "\033[0;36m%s\033[0m"
+			}
+			fmt.Printf(format, strconv.Itoa(int(brd.GetCoord(co))))
+		}
+		fmt.Print("\n")
+	}
+	fmt.Print("\033[1;1H")
 }
 
 func load(fn string) (board.Board[intS], error) {
