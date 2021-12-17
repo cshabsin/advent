@@ -15,9 +15,6 @@ func main() {
 	part1("sample.txt", true)
 	part1("input.txt", false)
 	part1("input.txt", true)
-	// part2("sample.txt")
-	// fmt.Println("---")
-	// part2("input.txt")
 }
 
 func part1(fn string, isQuint bool) {
@@ -41,7 +38,8 @@ func part1(fn string, isQuint bool) {
 	target := board.MakeCoord(len(brd)-1, len(brd[0])-1)
 	distBrd.initialize(current, 0)
 	for {
-		//distBrd.visualize(brd, current)
+		// distBrd.visualize(brd, current)
+		// time.Sleep(time.Millisecond * 50)
 		if current == target {
 			fmt.Println(distBrd.get(current))
 			return
@@ -50,7 +48,10 @@ func part1(fn string, isQuint bool) {
 			if !distBrd.isUnvisited(neigh) {
 				continue
 			}
-			distBrd.set(neigh, distBrd.get(current)+brd.GetCoord(neigh))
+			newDist := distBrd.get(current) + brd.GetCoord(neigh)
+			if newDist < distBrd.get(neigh) {
+				distBrd.set(neigh, newDist)
+			}
 		}
 		distBrd.remove(current)
 		current = distBrd.next()
