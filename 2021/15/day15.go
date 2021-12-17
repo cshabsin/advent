@@ -135,19 +135,29 @@ func (d *distanceBoard) next() board.Coord {
 }
 
 func (d *distanceBoard) visualize(brd board.Board[intS], current board.Coord) *image.Paletted {
+	mul := 500 / brd.Width()
 	var pix []uint8
 	for r := 0; r < brd.Height(); r++ {
+		var pixRow []uint8
 		for c := 0; c < brd.Width(); c++ {
 			co := board.MakeCoord(r, c)
 			val := brd.GetCoord(co)
 			if !d.isUnvisited(co) {
 				val += 10
 			}
-			pix = append(pix, uint8(val))
+			if co == current {
+				val = 20
+			}
+			for i := 0; i < mul; i++ {
+				pixRow = append(pixRow, uint8(val))
+			}
+		}
+		for i := 0; i < mul; i++ {
+			pix = append(pix, pixRow...)
 		}
 	}
 	var palette color.Palette
-	for i := 0; i < 19; i++ {
+	for i := 0; i <= 19; i++ {
 		clr := color.RGBA{
 			R: uint8(0x10 * (i % 10)),
 			B: uint8(0xf0 - (0x10 * (i % 10))),
@@ -159,12 +169,13 @@ func (d *distanceBoard) visualize(brd board.Board[intS], current board.Coord) *i
 		}
 		palette = append(palette, clr)
 	}
+	palette = append(palette, color.White)
 	return &image.Paletted{
 		Pix:    pix,
-		Stride: brd.Width(), // 1 byte per entry
+		Stride: brd.Width() * mul, // 1 byte per entry
 		Rect: image.Rectangle{
 			Min: image.Pt(0, 0),
-			Max: image.Pt(brd.Width()-1, brd.Height()-1),
+			Max: image.Pt((mul*brd.Width())-1, (mul*brd.Height())-1),
 		},
 		Palette: palette,
 	}
