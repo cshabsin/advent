@@ -9,22 +9,28 @@ import "fmt"
 // n^2+n-550 = 0
 
 func main() {
-	dx := 23
-	for dy := 0; dy < 2000; dy++ {
-		step(dx, dy, 269, 292, -68, -44)
+	var cnt int
+	for dx := 5; dx < 2000; dx++ {
+		for dy := -500; dy < 2000; dy++ {
+			if step(dx, dy, 269, 292, -68, -44) {
+				// if step(dx, dy, 20, 30, -10, -5) {
+				cnt++
+			}
+		}
 	}
+	fmt.Println(cnt)
 }
 
-func step(dx, dy, tgtXmin, tgtXmax, tgtYmin, tgtYmax int) {
+func step(dx, dy, tgtXmin, tgtXmax, tgtYmin, tgtYmax int) bool {
 	initdx, initdy := dx, dy
 	var x, y, maxY int
 	for {
 		if x >= tgtXmin && x <= tgtXmax && y >= tgtYmin && y <= tgtYmax {
 			fmt.Println("matched", initdx, initdy, "(peak", maxY, ")")
-			return
+			return true
 		}
 		if x > tgtXmax || y < tgtYmin {
-			return
+			return false
 		}
 		x += dx
 		if dx > 0 {
