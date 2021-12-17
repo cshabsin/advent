@@ -2,9 +2,14 @@ package main
 
 import (
 	"fmt"
+	"image"
+	"image/color"
+	"image/gif"
 	"log"
+	"os"
 	"sort"
 	"strconv"
+	"strings"
 
 	"github.com/cshabsin/advent/commongen/board"
 	"github.com/cshabsin/advent/commongen/readinp"
@@ -37,12 +42,19 @@ func part1(fn string, isQuint bool) {
 	current := board.MakeCoord(0, 0)
 	target := board.MakeCoord(len(brd)-1, len(brd[0])-1)
 	distBrd.initialize(current, 0)
+	outGIF := &gif.GIF{}
+	var iter int
 	for {
-		// distBrd.visualize(brd, current)
-		// time.Sleep(time.Millisecond * 50)
+		if fn == "sample.txt" || iter%2000 == 0 {
+			outGIF.Image = append(outGIF.Image, distBrd.visualize(brd, current))
+			outGIF.Delay = append(outGIF.Delay, 0)
+		}
+		iter++
 		if current == target {
 			fmt.Println(distBrd.get(current))
-			return
+			outGIF.Image = append(outGIF.Image, distBrd.visualize(brd, current))
+			outGIF.Delay = append(outGIF.Delay, 0)
+			break
 		}
 		for _, neigh := range brd.Neighbors4(current) {
 			if !distBrd.isUnvisited(neigh) {
@@ -56,6 +68,14 @@ func part1(fn string, isQuint bool) {
 		distBrd.remove(current)
 		current = distBrd.next()
 	}
+	outFile := strings.TrimSuffix(fn, ".txt")
+	if isQuint {
+		outFile += "5"
+	}
+	outFile += "_anim.gif"
+	f, err := os.OpenFile(outFile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
+	defer f.Close()
+	gif.EncodeAll(f, outGIF)
 }
 
 type distanceBoard struct {
@@ -114,23 +134,40 @@ func (d *distanceBoard) next() board.Coord {
 	return next
 }
 
-func (d *distanceBoard) visualize(brd board.Board[intS], current board.Coord) {
+func (d *distanceBoard) visualize(brd board.Board[intS], current board.Coord) *image.Paletted {
+	var pix []uint8
 	for r := 0; r < brd.Height(); r++ {
 		for c := 0; c < brd.Width(); c++ {
 			co := board.MakeCoord(r, c)
-			var format string
-			if co == current {
-				format = "\033[1;33m%s\033[0m"
-			} else if d.isUnvisited(co) {
-				format = "\033[1;32m%s\033[0m"
-			} else {
-				format = "\033[0;36m%s\033[0m"
+			val := brd.GetCoord(co)
+			if !d.isUnvisited(co) {
+				val += 10
 			}
-			fmt.Printf(format, strconv.Itoa(int(brd.GetCoord(co))))
+			pix = append(pix, uint8(val))
 		}
-		fmt.Print("\n")
 	}
-	fmt.Print("\033[1;1H")
+	var palette color.Palette
+	for i := 0; i < 19; i++ {
+		clr := color.RGBA{
+			R: uint8(0x10 * (i % 10)),
+			B: uint8(0xf0 - (0x10 * (i % 10))),
+			A: 0xff,
+		}
+		if i > 9 {
+			clr.R += 0x7f
+			clr.B += 0x7f
+		}
+		palette = append(palette, clr)
+	}
+	return &image.Paletted{
+		Pix:    pix,
+		Stride: brd.Width(), // 1 byte per entry
+		Rect: image.Rectangle{
+			Min: image.Pt(0, 0),
+			Max: image.Pt(brd.Width()-1, brd.Height()-1),
+		},
+		Palette: palette,
+	}
 }
 
 func load(fn string) (board.Board[intS], error) {
