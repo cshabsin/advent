@@ -20,6 +20,7 @@ func parse(input string) {
 	fmt.Println(input, "(", bits, "bits):")
 	fmt.Println(pkt)
 	fmt.Println("versions:", sumVersions(pkt))
+	fmt.Println("calc:", calculate(pkt))
 	fmt.Println("---")
 }
 
@@ -31,8 +32,72 @@ func sumVersions(pkt *packet) int {
 	return vers
 }
 
+func calculate(pkt *packet) int {
+	switch pkt.pType {
+	case ptSum:
+		var sum int
+		for _, subp := range pkt.subpackets {
+			sum += calculate(subp)
+		}
+		return sum
+	case ptProduct:
+		prod := 1
+		for _, subp := range pkt.subpackets {
+			prod *= calculate(subp)
+		}
+		return prod
+	case ptMin:
+		min := calculate(pkt.subpackets[0])
+		for _, subp := range pkt.subpackets {
+			cur := calculate(subp)
+			if cur < min {
+				min = cur
+			}
+		}
+		return min
+	case ptMax:
+		max := calculate(pkt.subpackets[0])
+		for _, subp := range pkt.subpackets {
+			cur := calculate(subp)
+			if cur > max {
+				max = cur
+			}
+		}
+		return max
+	case ptLiteral:
+		return pkt.literal
+	case ptGT:
+		if calculate(pkt.subpackets[0]) > calculate(pkt.subpackets[1]) {
+			return 1
+		} else {
+			return 0
+		}
+	case ptLT:
+		if calculate(pkt.subpackets[0]) < calculate(pkt.subpackets[1]) {
+			return 1
+		} else {
+			return 0
+		}
+	case ptEq:
+		if calculate(pkt.subpackets[0]) == calculate(pkt.subpackets[1]) {
+			return 1
+		} else {
+			return 0
+		}
+	}
+	log.Fatal("bad type", pkt.pType)
+	return 0
+}
+
 const (
+	ptSum     = 0
+	ptProduct = 1
+	ptMin     = 2
+	ptMax     = 3
 	ptLiteral = 4
+	ptGT      = 5
+	ptLT      = 6
+	ptEq      = 7
 )
 
 type packet struct {
