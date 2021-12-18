@@ -2,6 +2,14 @@ package main
 
 import "testing"
 
+func mustParse(t *testing.T, line string) *snailfish {
+	s, err := parse(line)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return s
+}
+
 func TestExplode(t *testing.T) {
 	testcases := []struct {
 		in          string
@@ -33,15 +41,16 @@ func TestExplode(t *testing.T) {
 			want:        "[[3,[2,[8,0]]],[9,[5,[7,0]]]]",
 			wantChanged: true,
 		},
+		{
+			in:          "[[[[0,7],4],[[7,8],[0,[6,7]]]],[1,1]]",
+			want:        "[[[[0,7],4],[[7,8],[6,0]]],[8,1]]",
+			wantChanged: true,
+		},
 	}
 	for _, tc := range testcases {
 		t.Run(tc.in, func(t *testing.T) {
-			lf, err := parse(tc.in)
-			if err != nil {
-				t.Errorf("error parsing in %q: %v", tc.in, err)
-				return
-			}
-			got, _, _, changed := explode(lf, 0, 0, true)
+			lf := mustParse(t, tc.in)
+			got, changed := explode(lf, 0, true)
 			if got.String() != tc.want {
 				t.Errorf("explode got %v, want %v", got, tc.want)
 			}
@@ -52,12 +61,50 @@ func TestExplode(t *testing.T) {
 	}
 }
 
+func checkEq(t *testing.T, s *snailfish, val string) *snailfish {
+	if s.String() != val {
+		t.Fatalf("test val %v didn't match expected val %q", s, val)
+	}
+	return s
+}
+
+func TestAddToLeft(t *testing.T) {
+	testcases := []struct {
+		fish string
+		node func(s *snailfish) *snailfish
+		val  int
+		want string
+	}{
+		{
+			fish: "[7,[[[3,7],[4,3]],[[6,3],[8,8]]]]",
+			node: func(s *snailfish) *snailfish {
+				return checkEq(t, s.second.first.first, "[3,7]")
+			},
+			val:  1,
+			want: "[8,[[[3,7],[4,3]],[[6,3],[8,8]]]]",
+		},
+	}
+	for _, tc := range testcases {
+		fish := mustParse(t, tc.fish)
+		tc.node(fish).addToLeft(tc.val)
+		if got := fish.String(); got != tc.want {
+			t.Errorf("addToLeft got %v, want %v", got, tc.want)
+		}
+	}
+}
+
 func TestAdd(t *testing.T) {
 	testcases := []struct {
 		desc string
 		a, b string
 		want string
 	}{
+		{
+			desc: "sample",
+			a:    "[[[[4,3],4],4],[7,[[8,4],9]]]",
+			b:    "[1,1]",
+			want: "[[[[0,7],4],[[7,8],[6,0]]],[8,1]]",
+		},
 		{
 			"1",
 			"[[[0,[4,5]],[0,0]],[[[4,5],[2,6]],[9,5]]]",
@@ -124,7 +171,7 @@ func TestAdd(t *testing.T) {
 				t.Fatal(err)
 			}
 			if got := a.add(b); got.String() != tc.want {
-				t.Errorf("add %q + %q, got %v, want %q", tc.a, tc.b, got, tc.want)
+				t.Errorf("add %q + %q, got\n%v\n    , want\n%v", tc.a, tc.b, got, tc.want)
 			}
 		})
 	}

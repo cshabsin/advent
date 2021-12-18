@@ -9,6 +9,11 @@ import (
 )
 
 func main() {
+	fmt.Println("---")
+	lf, _ := parse("[7,[6,[5,[4,[3,2]]]]]")
+	fmt.Println(lf)
+	explode(lf, 0, true)
+	fmt.Println(lf)
 	// lf, _ := parse("[[[[[9,8],1],2],3],4]")
 	// fmt.Println(lf)
 	// fmt.Println(reduce(lf, 0, 0))
@@ -41,13 +46,15 @@ func part1(fn string) {
 }
 
 type snailfish struct {
-	regular     int
-	left, right *snailfish
+	regular       int
+	parent        *snailfish
+	first, second *snailfish
+	isFirst       bool
 }
 
 func (s snailfish) String() string {
 	if !s.isRegular() {
-		return fmt.Sprintf("[%v,%v]", s.left, s.right)
+		return fmt.Sprintf("[%v,%v]", s.first, s.second)
 	}
 	return strconv.Itoa(s.regular)
 }
@@ -57,17 +64,17 @@ func makeRegular(regular int) *snailfish {
 }
 
 func (s snailfish) isRegular() bool {
-	return s.left == nil
+	return s.first == nil
 }
 
 func (s *snailfish) add(t *snailfish) *snailfish {
-	rc := &snailfish{left: s, right: t}
+	rc := &snailfish{first: s, second: t, parent: t.parent, isFirst: t.isFirst}
 	// fmt.Println("after addition:", rc)
 	for {
 		var changed bool
-		rc, _, _, changed = explode(rc, 0, 0, true)
-		// fmt.Println("after explode:", rc)
+		rc, changed = explode(rc, 0, true)
 		if changed {
+			// fmt.Println("after explode:", rc)
 			continue
 		}
 		rc, changed = split(rc)
@@ -79,51 +86,132 @@ func (s *snailfish) add(t *snailfish) *snailfish {
 	return rc
 }
 
-func (s *snailfish) addFromLeft(val int) {
-	if s.isRegular() {
-		s.regular += val
+func (s *snailfish) addToLeft(val int) {
+	if s == nil || s.parent == nil {
 		return
 	}
-	s.right.addFromLeft(val)
+	if s.isFirst {
+		s.parent.addToLeft(val)
+		return
+	}
+	// start with the left sibling
+	current := s.parent.first
+	for {
+		if current == nil {
+			return
+		}
+		if current.isRegular() {
+			current.regular += val
+			return
+		}
+		// go down the right-side path
+		current = current.second
+	}
 }
 
-func explode(s *snailfish, depth, rightIn int, doExplode bool) (rc *snailfish, left, right int, changed bool) {
+func (s *snailfish) addToRight(val int) {
+	if s == nil || s.parent == nil {
+		return
+	}
+	if !s.isFirst {
+		s.parent.addToRight(val)
+		return
+	}
+	current := s.parent.second
+	for {
+		if current == nil {
+			return
+		}
+		if current.isRegular() {
+			current.regular += val
+			return
+		}
+		// go down the left-side path
+		current = current.first
+	}
+}
+
+func (s *snailfish) top() *snailfish {
+	if s.parent == nil {
+		return s
+	}
+	return s.parent.top()
+}
+
+func explode(s *snailfish, depth int, doExplode bool) (rc *snailfish, changed bool) {
 	if s.isRegular() {
-		return makeRegular(s.regular + rightIn), 0, 0, rightIn != 0
+		return s, false
 	}
 	if depth == 4 && doExplode {
 		// your head a splode
-		return makeRegular(0), s.left.regular, s.right.regular, true
+		// fmt.Println("before explode", s.top())
+		s.addToLeft(s.first.regular)
+		// fmt.Println("after addToLeft", s.top())
+		s.addToRight(s.second.regular)
+		// fmt.Println("after addToRight", s.top())
+		rc := makeRegular(0)
+		rc.parent = s.parent
+		rc.isFirst = s.isFirst
+		return rc, true
 	}
-	rcleft, left, right, ch := explode(s.left, depth+1, rightIn, doExplode)
-	changed = changed || ch
-	if ch {
-		doExplode = false
+	rcFirst, changed := explode(s.first, depth+1, doExplode)
+	if changed {
+		rc := &snailfish{
+			first:   rcFirst,
+			second:  s.second,
+			parent:  s.parent,
+			isFirst: s.isFirst,
+		}
+		rc.first.parent = rc
+		rc.first.isFirst = true
+		rc.second.parent = rc
+		return rc, true
 	}
-	rcRight, rtLeft, right, ch := explode(s.right, depth+1, right, doExplode)
-	changed = changed || ch
-	rcleft.addFromLeft(rtLeft)
 
-	return &snailfish{left: rcleft, right: rcRight}, left, right, changed
+	rcSecond, changed := explode(s.second, depth+1, doExplode)
+
+	rc = &snailfish{
+		first:   rcFirst,
+		second:  rcSecond,
+		parent:  s.parent,
+		isFirst: s.isFirst,
+	}
+	rc.first.parent = rc
+	rc.first.isFirst = true
+	rc.second.parent = rc
+
+	return rc, changed
 }
 
 func split(s *snailfish) (*snailfish, bool) {
 	if s.isRegular() {
 		if s.regular >= 10 {
 			left := s.regular / 2
-			return &snailfish{
-				left:  makeRegular(left),
-				right: makeRegular(s.regular - left),
-			}, true
+			rc := &snailfish{
+				first:   makeRegular(left),
+				second:  makeRegular(s.regular - left),
+				parent:  s.parent,
+				isFirst: s.isFirst,
+			}
+			rc.first.parent = rc
+			rc.first.isFirst = true
+			rc.second.parent = rc
+			return rc, true
 		}
 		return s, false
 	}
-	left, changed := split(s.left)
-	right, ch := split(s.right)
-	return &snailfish{
-		left:  left,
-		right: right,
-	}, changed || ch
+	left, changed := split(s.first)
+	right, ch := split(s.second)
+	rc := &snailfish{
+		first:   left,
+		second:  right,
+		parent:  s.parent,
+		isFirst: s.isFirst,
+	}
+	rc.first.parent = rc
+	rc.first.isFirst = true
+	rc.second.parent = rc
+	return rc, changed || ch
 }
 
 func parse(line string) (*snailfish, error) {
@@ -153,10 +241,14 @@ func parsePartial(line string) (*snailfish, string, error) {
 		if rest[0] != ']' {
 			return nil, "", fmt.Errorf("parsePartial on line %q expected close bracket after parsing second, got %q", line, rest)
 		}
-		return &snailfish{
-			left:  first,
-			right: second,
-		}, rest[1:], nil
+		s := &snailfish{
+			first:  first,
+			second: second,
+		}
+		first.parent = s
+		first.isFirst = true
+		second.parent = s
+		return s, rest[1:], nil
 	}
 	regular, err := strconv.Atoi(string(line[0]))
 	if err != nil {
