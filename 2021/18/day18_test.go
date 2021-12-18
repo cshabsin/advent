@@ -2,7 +2,7 @@ package main
 
 import "testing"
 
-func mustParse(t *testing.T, line string) *snailfish {
+func mustParseT(t *testing.T, line string) *snailfish {
 	s, err := parse(line)
 	if err != nil {
 		t.Fatal(err)
@@ -49,7 +49,7 @@ func TestExplode(t *testing.T) {
 	}
 	for _, tc := range testcases {
 		t.Run(tc.in, func(t *testing.T) {
-			lf := mustParse(t, tc.in)
+			lf := mustParseT(t, tc.in)
 			got, changed := explode(lf, 0, true)
 			if got.String() != tc.want {
 				t.Errorf("explode got %v, want %v", got, tc.want)
@@ -85,7 +85,7 @@ func TestAddToLeft(t *testing.T) {
 		},
 	}
 	for _, tc := range testcases {
-		fish := mustParse(t, tc.fish)
+		fish := mustParseT(t, tc.fish)
 		tc.node(fish).addToLeft(tc.val)
 		if got := fish.String(); got != tc.want {
 			t.Errorf("addToLeft got %v, want %v", got, tc.want)
@@ -186,12 +186,12 @@ func TestAdd(t *testing.T) {
 	}
 	for _, tc := range testcases {
 		t.Run(tc.desc, func(t *testing.T) {
-			a := mustParse(t, tc.a)
-			b := mustParse(t, tc.b)
+			a := mustParseT(t, tc.a)
+			b := mustParseT(t, tc.b)
 			if got := a.add(b); got.String() != tc.want {
 				t.Errorf("add %q + %q, got\n%v\n    , want\n%v", tc.a, tc.b, got, tc.want)
-				a := mustParse(t, tc.a)
-				b := mustParse(t, tc.b)
+				a := mustParseT(t, tc.a)
+				b := mustParseT(t, tc.b)
 				doDebug = true
 				a.add(b)
 				doDebug = false

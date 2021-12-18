@@ -13,6 +13,9 @@ func main() {
 	part1("sample0.txt")
 	part1("sample.txt")
 	part1("input.txt")
+	part2("sample0.txt")
+	part2("sample.txt")
+	part2("input.txt")
 }
 
 func part1(fn string) {
@@ -33,6 +36,36 @@ func part1(fn string) {
 		tot = tot.add(s)
 	}
 	fmt.Println(fn, ":", tot, "(", tot.magnitude(), ")")
+}
+
+func part2(fn string) {
+	ch, err := readinp.Read(fn, readinp.S)
+	if err != nil {
+		log.Fatal(err)
+	}
+	var nums []string
+	for line := range ch {
+		s, err := line.Get()
+		if err != nil {
+			log.Fatal(err)
+		}
+		nums = append(nums, s)
+	}
+	var maxMag int
+	for i := 0; i < len(nums); i++ {
+		for j := 0; j < len(nums); j++ {
+			if i == j {
+				continue
+			}
+			a := mustParse(nums[i])
+			b := mustParse(nums[j])
+			mag := a.add(b).magnitude()
+			if mag > maxMag {
+				maxMag = mag
+			}
+		}
+	}
+	fmt.Println(fn, ":", maxMag)
 }
 
 type snailfish struct {
@@ -281,4 +314,11 @@ func parsePartial(line string) (*snailfish, string, error) {
 		return nil, "", err
 	}
 	return &snailfish{regular: regular}, line[1:], nil
+}
+func mustParse(line string) *snailfish {
+	s, err := parse(line)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return s
 }
