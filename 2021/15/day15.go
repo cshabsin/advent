@@ -58,7 +58,7 @@ func part1(fn string, isQuint bool) {
 		if current == target {
 			fmt.Println(distBrd.get(current))
 			outGIF.Image = append(outGIF.Image, distBrd.visualize(brd, current))
-			outGIF.Delay = append(outGIF.Delay, 0)
+			outGIF.Delay = append(outGIF.Delay, 1000)
 			break
 		}
 		for _, neigh := range brd.Neighbors4(current) {
@@ -147,7 +147,7 @@ func (d *distanceBoard) next() board.Coord {
 	return next
 }
 
-var palette = color.Palette{
+var palette21 = color.Palette{
 	// 0-9 unvisited
 	color.RGBA{
 		R: 0, G: 0, B: 0x40, A: 0xff,
@@ -216,6 +216,33 @@ var palette = color.Palette{
 	},
 }
 
+func (d *distanceBoard) visCoord(brd board.Board[intS], co, current board.Coord) intS {
+	if d.paths[current][co] {
+		return 20
+	}
+	val := brd.GetCoord(co)
+	if !d.isUnvisited(co) {
+		val += 10
+	}
+	return val
+}
+
+func (d *distanceBoard) visDist(brd board.Board[intS], co, current board.Coord) uint8 {
+	if d.paths[current][co] {
+		return 201
+	}
+	if d.isUnvisited(co) {
+		return uint8(d.visCoord(brd, co, current))
+	}
+	curDist := d.get(current)
+	coDist := d.get(co)
+
+	// funky!
+	return uint8(((200 + coDist - curDist) * 200 / curDist))
+	// // scale it into a range from 0-199
+	// return uint8(199 - ((curDist - coDist) * 200 / curDist))
+}
+
 func (d *distanceBoard) visualize(brd board.Board[intS], current board.Coord) *image.Paletted {
 	mul := 500 / brd.Width()
 	var pix []uint8
@@ -223,13 +250,8 @@ func (d *distanceBoard) visualize(brd board.Board[intS], current board.Coord) *i
 		var pixRow []uint8
 		for c := 0; c < brd.Width(); c++ {
 			co := board.MakeCoord(r, c)
-			val := brd.GetCoord(co)
-			if !d.isUnvisited(co) {
-				val += 10
-			}
-			if d.paths[current][co] {
-				val = 20
-			}
+			// val := d.visCoord(brd, co, current)
+			val := d.visDist(brd, co, current)
 			for i := 0; i < mul; i++ {
 				pixRow = append(pixRow, uint8(val))
 			}
@@ -238,6 +260,12 @@ func (d *distanceBoard) visualize(brd board.Board[intS], current board.Coord) *i
 			pix = append(pix, pixRow...)
 		}
 	}
+	var palette201 []color.Color
+	for i := uint8(0); i < 200; i++ {
+		palette201 = append(palette201, color.RGBA{i, i / 2, i, 0xff})
+	}
+	palette201 = append(palette201, color.RGBA{0, 0xff, 0, 0xff})
+	palette201 = append(palette201, color.White)
 	return &image.Paletted{
 		Pix:    pix,
 		Stride: brd.Width() * mul, // 1 byte per entry
@@ -245,7 +273,7 @@ func (d *distanceBoard) visualize(brd board.Board[intS], current board.Coord) *i
 			Min: image.Pt(0, 0),
 			Max: image.Pt((mul*brd.Width())-1, (mul*brd.Height())-1),
 		},
-		Palette: palette,
+		Palette: palette201,
 	}
 }
 
