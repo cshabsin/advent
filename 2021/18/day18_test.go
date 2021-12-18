@@ -33,10 +33,6 @@ func TestExplode(t *testing.T) {
 			want:        "[[3,[2,[8,0]]],[9,[5,[7,0]]]]",
 			wantChanged: true,
 		},
-		{
-			in:   "[[[[0,7],4],[7,[[8,4],9]]],[1,1]]",
-			want: "[[[[0,7],4],[7,[[8,4],9]]],[1,1]]",
-		},
 	}
 	for _, tc := range testcases {
 		t.Run(tc.in, func(t *testing.T) {
