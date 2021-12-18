@@ -3,26 +3,16 @@ package main
 import (
 	"fmt"
 	"log"
+	"runtime/debug"
 	"strconv"
 
 	"github.com/cshabsin/advent/commongen/readinp"
 )
 
 func main() {
-	fmt.Println("---")
-	lf, _ := parse("[7,[6,[5,[4,[3,2]]]]]")
-	fmt.Println(lf)
-	explode(lf, 0, true)
-	fmt.Println(lf)
-	// lf, _ := parse("[[[[[9,8],1],2],3],4]")
-	// fmt.Println(lf)
-	// fmt.Println(reduce(lf, 0, 0))
-
-	// left, _ := parse("[[[[4,3],4],4],[7,[[8,4],9]]]")
-	// right, _ := parse("[1,1]")
-	// fmt.Printf("%v + %v = %v", left, right, left.add(right))
 	part1("sample0.txt")
 	part1("sample.txt")
+	part1("input.txt")
 }
 
 func part1(fn string) {
@@ -67,18 +57,35 @@ func (s snailfish) isRegular() bool {
 	return s.first == nil
 }
 
+var doDebug = false
+
+func dbg(x ...interface{}) {
+	if doDebug {
+		fmt.Println(x...)
+	}
+}
+
 func (s *snailfish) add(t *snailfish) *snailfish {
-	rc := &snailfish{first: s, second: t, parent: t.parent, isFirst: t.isFirst}
-	// fmt.Println("after addition:", rc)
+	if doDebug {
+		debug.PrintStack()
+	}
+	dbg("---", s, "+", t, ":")
+	rc := &snailfish{
+		first:   s,
+		second:  t,
+		parent:  s.parent, // do these matter? we only ever "add" top-level values
+		isFirst: s.isFirst,
+	}
+	dbg("after addition:", rc)
 	for {
 		var changed bool
 		rc, changed = explode(rc, 0, true)
 		if changed {
-			// fmt.Println("after explode:", rc)
+			dbg("after explode:", rc)
 			continue
 		}
 		rc, changed = split(rc)
-		// fmt.Println("after split:", rc)
+		dbg("after split:", rc)
 		if !changed {
 			break
 		}
@@ -201,6 +208,18 @@ func split(s *snailfish) (*snailfish, bool) {
 		return s, false
 	}
 	left, changed := split(s.first)
+	if changed {
+		rc := &snailfish{
+			first:   left,
+			second:  s.second,
+			parent:  s.parent,
+			isFirst: s.isFirst,
+		}
+		rc.first.parent = rc
+		rc.first.isFirst = true
+		rc.second.parent = rc
+		return rc, true
+	}
 	right, ch := split(s.second)
 	rc := &snailfish{
 		first:   left,

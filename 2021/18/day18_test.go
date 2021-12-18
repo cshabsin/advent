@@ -106,6 +106,30 @@ func TestAdd(t *testing.T) {
 			want: "[[[[0,7],4],[[7,8],[6,0]]],[8,1]]",
 		},
 		{
+			desc: "cascade1",
+			a:    "[1,1]",
+			b:    "[2,2]",
+			want: "[[1,1],[2,2]]",
+		},
+		{
+			desc: "cascade2",
+			a:    "[[[1,1],[2,2]],[3,3]]",
+			b:    "[4,4]",
+			want: "[[[[1,1],[2,2]],[3,3]],[4,4]]",
+		},
+		{
+			desc: "cascade3",
+			a:    "[[[[1,1],[2,2]],[3,3]],[4,4]]",
+			b:    "[5,5]",
+			want: "[[[[3,0],[5,3]],[4,4]],[5,5]]",
+		},
+		{
+			desc: "cascade4",
+			a:    "[[[[3,0],[5,3]],[4,4]],[5,5]]",
+			b:    "[6,6]",
+			want: "[[[[5,0],[7,4]],[5,5]],[6,6]]",
+		},
+		{
 			"1",
 			"[[[0,[4,5]],[0,0]],[[[4,5],[2,6]],[9,5]]]",
 			"[7,[[[3,7],[4,3]],[[6,3],[8,8]]]]",
@@ -162,16 +186,15 @@ func TestAdd(t *testing.T) {
 	}
 	for _, tc := range testcases {
 		t.Run(tc.desc, func(t *testing.T) {
-			a, err := parse(tc.a)
-			if err != nil {
-				t.Fatal(err)
-			}
-			b, err := parse(tc.b)
-			if err != nil {
-				t.Fatal(err)
-			}
+			a := mustParse(t, tc.a)
+			b := mustParse(t, tc.b)
 			if got := a.add(b); got.String() != tc.want {
 				t.Errorf("add %q + %q, got\n%v\n    , want\n%v", tc.a, tc.b, got, tc.want)
+				a := mustParse(t, tc.a)
+				b := mustParse(t, tc.b)
+				doDebug = true
+				a.add(b)
+				doDebug = false
 			}
 		})
 	}
