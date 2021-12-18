@@ -238,9 +238,9 @@ func (d *distanceBoard) visDist(brd board.Board[intS], co, current board.Coord) 
 	coDist := d.get(co)
 
 	// funky!
-	return uint8(((200 + coDist - curDist) * 200 / curDist))
+	// return uint8(((200 + coDist - curDist) * 200 / curDist))
 	// // scale it into a range from 0-199
-	// return uint8(199 - ((curDist - coDist) * 200 / curDist))
+	return uint8(199 - ((curDist - coDist) * 200 / curDist))
 }
 
 func (d *distanceBoard) visualize(brd board.Board[intS], current board.Coord) *image.Paletted {
@@ -262,6 +262,18 @@ func (d *distanceBoard) visualize(brd board.Board[intS], current board.Coord) *i
 	}
 	var palette201 []color.Color
 	for i := uint8(0); i < 200; i++ {
+		if i == 98 || i == 102 {
+			palette201 = append(palette201, color.RGBA{0, 0x60, 0, 0xff})
+			continue
+		}
+		if i == 99 || i == 101 {
+			palette201 = append(palette201, color.RGBA{0, 0xb0, 0, 0xff})
+			continue
+		}
+		if i == 100 {
+			palette201 = append(palette201, color.RGBA{0, 0xff, 0, 0xff})
+			continue
+		}
 		palette201 = append(palette201, color.RGBA{i, i / 2, i, 0xff})
 	}
 	palette201 = append(palette201, color.RGBA{0, 0xff, 0, 0xff})
