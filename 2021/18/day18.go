@@ -57,6 +57,7 @@ func part2(fn string) {
 			if i == j {
 				continue
 			}
+			// reparse every time since add is destructive.
 			a := mustParse(nums[i])
 			b := mustParse(nums[j])
 			mag := a.add(b).magnitude()
