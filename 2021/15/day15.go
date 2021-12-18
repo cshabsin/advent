@@ -13,6 +13,7 @@ import (
 
 	"github.com/cshabsin/advent/commongen/board"
 	"github.com/cshabsin/advent/commongen/readinp"
+	"github.com/cshabsin/advent/commongen/set"
 )
 
 func main() {
@@ -32,10 +33,14 @@ func part1(fn string, isQuint bool) {
 		brd = quintuple(brd)
 	}
 	distBrd := distanceBoard{
+		board:     brd,
 		distances: make(map[board.Coord]intS),
+		paths:     make(map[board.Coord]set.Set[board.Coord]),
 		unvisited: make(map[board.Coord]bool),
 		nexts:     make(map[intS][]board.Coord),
 	}
+	distBrd.paths[board.MakeCoord(0, 0)] = make(set.Set[board.Coord])
+	distBrd.paths[board.MakeCoord(0, 0)][board.MakeCoord(0, 0)] = true
 	for _, co := range brd.AllCoords() {
 		distBrd.initialize(co, 99999999999)
 	}
@@ -45,7 +50,7 @@ func part1(fn string, isQuint bool) {
 	outGIF := &gif.GIF{}
 	var iter int
 	for {
-		if fn == "sample.txt" || iter%2000 == 0 {
+		if fn == "sample.txt" || (!isQuint && iter%100 == 0) || iter%2000 == 0 {
 			outGIF.Image = append(outGIF.Image, distBrd.visualize(brd, current))
 			outGIF.Delay = append(outGIF.Delay, 0)
 		}
@@ -62,7 +67,7 @@ func part1(fn string, isQuint bool) {
 			}
 			newDist := distBrd.get(current) + brd.GetCoord(neigh)
 			if newDist < distBrd.get(neigh) {
-				distBrd.set(neigh, newDist)
+				distBrd.set(current, neigh)
 			}
 		}
 		distBrd.remove(current)
@@ -79,7 +84,9 @@ func part1(fn string, isQuint bool) {
 }
 
 type distanceBoard struct {
+	board     board.Board[intS]
 	distances map[board.Coord]intS
+	paths     map[board.Coord]set.Set[board.Coord]
 	unvisited map[board.Coord]bool
 
 	// map from distance to list of coordinates with that size
@@ -89,9 +96,15 @@ type distanceBoard struct {
 	nextDistances []intS
 }
 
-func (d *distanceBoard) set(co board.Coord, dist intS) {
+func (d *distanceBoard) set(current, co board.Coord) {
+	dist := d.get(current) + d.board.GetCoord(co)
 	// fmt.Println("setting", co, "to", dist)
 	d.distances[co] = dist
+	d.paths[co] = make(set.Set[board.Coord])
+	d.paths[co][co] = true
+	for c := range d.paths[current] {
+		d.paths[co].Add(c)
+	}
 	if d.nexts[dist] == nil {
 		d.nextDistances = append(d.nextDistances, dist)
 		sort.Slice(d.nextDistances, func(i, j int) bool { return d.nextDistances[i] < d.nextDistances[j] })
@@ -134,6 +147,75 @@ func (d *distanceBoard) next() board.Coord {
 	return next
 }
 
+var palette = color.Palette{
+	// 0-9 unvisited
+	color.RGBA{
+		R: 0, G: 0, B: 0x40, A: 0xff,
+	},
+	color.RGBA{
+		R: 0, G: 0x18, B: 0x28, A: 0xff,
+	},
+	color.RGBA{
+		R: 0, G: 0x30, B: 0x10, A: 0xff,
+	},
+	color.RGBA{
+		R: 0, G: 0x40, B: 0, A: 0xff,
+	},
+	color.RGBA{
+		R: 0x20, G: 0x40, B: 0, A: 0xff,
+	},
+	color.RGBA{
+		R: 0x40, G: 0x40, B: 0, A: 0xff,
+	},
+	color.RGBA{
+		R: 0x40, G: 0x30, B: 0, A: 0xff,
+	},
+	color.RGBA{
+		R: 0x40, G: 0x20, B: 0, A: 0xff,
+	},
+	color.RGBA{
+		R: 0x40, G: 0x10, B: 0, A: 0xff,
+	},
+	color.RGBA{
+		R: 0x40, G: 0, B: 0, A: 0xff,
+	},
+	// 10-19 visited
+	color.RGBA{
+		R: 0, G: 0, B: 0xff, A: 0xff,
+	},
+	color.RGBA{
+		R: 0, G: 0x60, B: 0xa0, A: 0xff,
+	},
+	color.RGBA{
+		R: 0, G: 0xb0, B: 0x40, A: 0xff,
+	},
+	color.RGBA{
+		R: 0, G: 0xff, B: 0, A: 0xff,
+	},
+	color.RGBA{
+		R: 0x80, G: 0xff, B: 0, A: 0xff,
+	},
+	color.RGBA{
+		R: 0xff, G: 0xff, B: 0, A: 0xff,
+	},
+	color.RGBA{
+		R: 0xff, G: 0xb0, B: 0, A: 0xff,
+	},
+	color.RGBA{
+		R: 0xff, G: 0x80, B: 0, A: 0xff,
+	},
+	color.RGBA{
+		R: 0xff, G: 0x40, B: 0, A: 0xff,
+	},
+	color.RGBA{
+		R: 0xff, G: 0, B: 0, A: 0xff,
+	},
+	// 20 = path
+	color.RGBA{
+		R: 0xff, G: 0xff, B: 0xff, A: 0xff,
+	},
+}
+
 func (d *distanceBoard) visualize(brd board.Board[intS], current board.Coord) *image.Paletted {
 	mul := 500 / brd.Width()
 	var pix []uint8
@@ -145,7 +227,7 @@ func (d *distanceBoard) visualize(brd board.Board[intS], current board.Coord) *i
 			if !d.isUnvisited(co) {
 				val += 10
 			}
-			if co == current {
+			if d.paths[current][co] {
 				val = 20
 			}
 			for i := 0; i < mul; i++ {
@@ -156,20 +238,6 @@ func (d *distanceBoard) visualize(brd board.Board[intS], current board.Coord) *i
 			pix = append(pix, pixRow...)
 		}
 	}
-	var palette color.Palette
-	for i := 0; i <= 19; i++ {
-		clr := color.RGBA{
-			R: uint8(0x10 * (i % 10)),
-			B: uint8(0xf0 - (0x10 * (i % 10))),
-			A: 0xff,
-		}
-		if i > 9 {
-			clr.R += 0x7f
-			clr.B += 0x7f
-		}
-		palette = append(palette, clr)
-	}
-	palette = append(palette, color.White)
 	return &image.Paletted{
 		Pix:    pix,
 		Stride: brd.Width() * mul, // 1 byte per entry
