@@ -32,7 +32,7 @@ func part1(fn string) {
 		}
 		tot = tot.add(s)
 	}
-	fmt.Println(fn, ":", tot)
+	fmt.Println(fn, ":", tot, "(", tot.magnitude(), ")")
 }
 
 type snailfish struct {
@@ -193,10 +193,10 @@ func explode(s *snailfish, depth int, doExplode bool) (rc *snailfish, changed bo
 func split(s *snailfish) (*snailfish, bool) {
 	if s.isRegular() {
 		if s.regular >= 10 {
-			left := s.regular / 2
+			first := s.regular / 2
 			rc := &snailfish{
-				first:   makeRegular(left),
-				second:  makeRegular(s.regular - left),
+				first:   makeRegular(first),
+				second:  makeRegular(s.regular - first),
 				parent:  s.parent,
 				isFirst: s.isFirst,
 			}
@@ -207,10 +207,10 @@ func split(s *snailfish) (*snailfish, bool) {
 		}
 		return s, false
 	}
-	left, changed := split(s.first)
+	first, changed := split(s.first)
 	if changed {
 		rc := &snailfish{
-			first:   left,
+			first:   first,
 			second:  s.second,
 			parent:  s.parent,
 			isFirst: s.isFirst,
@@ -220,10 +220,10 @@ func split(s *snailfish) (*snailfish, bool) {
 		rc.second.parent = rc
 		return rc, true
 	}
-	right, ch := split(s.second)
+	second, ch := split(s.second)
 	rc := &snailfish{
-		first:   left,
-		second:  right,
+		first:   first,
+		second:  second,
 		parent:  s.parent,
 		isFirst: s.isFirst,
 	}
@@ -231,6 +231,13 @@ func split(s *snailfish) (*snailfish, bool) {
 	rc.first.isFirst = true
 	rc.second.parent = rc
 	return rc, changed || ch
+}
+
+func (s *snailfish) magnitude() int {
+	if s.isRegular() {
+		return s.regular
+	}
+	return s.first.magnitude()*3 + s.second.magnitude()*2
 }
 
 func parse(line string) (*snailfish, error) {
