@@ -30,6 +30,8 @@ type Consumer[T any] interface {
 	// object, or an empty/nil object and false, for lines that should not
 	// yield a result.
 	Parse(string) (T, bool, error)
+
+	Done() (*T, bool, error)
 }
 
 type consumerFunc[T any] func(string) (T, error)
@@ -37,6 +39,10 @@ type consumerFunc[T any] func(string) (T, error)
 func (c consumerFunc[T]) Parse(fn string) (T, bool, error) {
 	v, err := c(fn)
 	return v, true, err
+}
+
+func (c consumerFunc[T]) Done() (*T, bool, error) {
+	return nil, false, nil
 }
 
 func Read[T any](filename string, parser func(c string) (T, error)) (chan Line[T], error) {
@@ -73,12 +79,19 @@ func ReadConsumer[T any](filename string, consumer Consumer[T]) (chan Line[T], e
 				if err := scanner.Err(); err != nil {
 					ch <- Line[T]{Error: err}
 				}
+				pv, ret, err := consumer.Done()
+				if err != nil {
+					ch <- Line[T]{Error: err}
+				}
+				if ret {
+					ch <- Line[T]{Contents: *pv}
+				}
 				close(ch)
 				return
 			}
 			line := scanner.Text()
 			t, ret, err := consumer.Parse(strings.TrimSpace(line))
-			if ret {
+			if ret || err != nil {
 				ch <- Line[T]{Contents: t, Error: err}
 			}
 		}
