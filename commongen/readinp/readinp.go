@@ -25,6 +25,20 @@ func (l Line[T]) MustGet() T {
 	return l.Contents
 }
 
+type Consumer[T any] interface {
+	Parse(string) (T, error)
+}
+
+type consumerFunc[T any] func(string) (T, error)
+
+func (c consumerFunc[T]) Parse(fn string) (T, error) {
+	return c(fn)
+}
+
+func Read[T any](filename string, parser func(c string) (T, error)) (chan Line[T], error) {
+	return ReadConsumer[T](filename, consumerFunc[T](parser))
+}
+
 func MustRead[T any](filename string, parser func(c string) (T, error)) chan Line[T] {
 	ch, err := Read(filename, parser)
 	if err != nil {
@@ -34,7 +48,7 @@ func MustRead[T any](filename string, parser func(c string) (T, error)) chan Lin
 }
 
 // Read starts a goroutine that yields lines on the output channel.
-func Read[T any](filename string, parser func(c string) (T, error)) (chan Line[T], error) {
+func ReadConsumer[T any](filename string, consumer Consumer[T]) (chan Line[T], error) {
 	f, err := os.Open(filename)
 	if err != nil {
 		return nil, err
@@ -52,7 +66,7 @@ func Read[T any](filename string, parser func(c string) (T, error)) (chan Line[T
 				return
 			}
 			line := scanner.Text()
-			t, err := parser(strings.TrimSpace(line))
+			t, err := consumer.Parse(strings.TrimSpace(line))
 			ch <- Line[T]{Contents: t, Error: err}
 		}
 	}()
