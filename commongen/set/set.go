@@ -30,6 +30,14 @@ func (s Set[T]) Clone() Set[T] {
 	return clone
 }
 
+func (s Set[T]) AsSlice() []T {
+	var slice []T
+	for v := range s {
+		slice = append(slice, v)
+	}
+	return slice
+}
+
 func Intersect[T comparable](m Set[T], only Set[T]) Set[T] {
 	r := Set[T]{}
 	for v := range m {
