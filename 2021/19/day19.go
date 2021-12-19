@@ -75,7 +75,7 @@ func calcAllRotations() []matrix.Matrix {
 	yRot := matrix.Matrix{ //rotate around y axis
 		{0, 0, -1},
 		{0, 1, 0},
-		{1, 0, 1},
+		{1, 0, 0},
 	}
 	xRot := matrix.Matrix{ // rotate around x axis
 		{1, 0, 0},
