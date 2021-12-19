@@ -5,11 +5,15 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/cshabsin/advent/commongen/matrix"
 	"github.com/cshabsin/advent/commongen/readinp"
+	"github.com/cshabsin/advent/commongen/set"
 )
 
 func main() {
-	part1("input.txt")
+	fmt.Println(len(allRotations))
+	fmt.Println(allRotations)
+	//	part1("input.txt")
 }
 
 func part1(fn string) {
@@ -56,4 +60,37 @@ func (p *parser) Parse(line string) (scanner, bool, error) {
 
 func (p *parser) Done() (*scanner, bool, error) {
 	return &p.current, true, nil
+}
+
+var (
+	allRotations = calcAllRotations()
+)
+
+func calcAllRotations() []matrix.Matrix {
+	zRot := matrix.Matrix{ // rotate around z axis
+		{0, -1, 0},
+		{1, 0, 0},
+		{0, 0, 1},
+	}
+	yRot := matrix.Matrix{ //rotate around y axis
+		{0, 0, -1},
+		{0, 1, 0},
+		{1, 0, 1},
+	}
+	xRot := matrix.Matrix{ // rotate around x axis
+		{1, 0, 0},
+		{0, 0, -1},
+		{0, 1, 0},
+	}
+	rotSet := set.Set[matrix.Matrix]{}
+	rotSet.Add(matrix.Ident())
+	for x := 0; x < 4; x++ {
+		for y := 0; y < 4; y++ {
+			for z := 0; z < 4; z++ {
+				val := xRot.Pow(x).Mul(yRot.Pow(y)).Mul(zRot.Pow(z))
+				rotSet.Add(val)
+			}
+		}
+	}
+	return rotSet.AsSlice()
 }
