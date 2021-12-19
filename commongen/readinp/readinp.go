@@ -26,13 +26,17 @@ func (l Line[T]) MustGet() T {
 }
 
 type Consumer[T any] interface {
-	Parse(string) (T, error)
+	// Parse returns the object to return and true, for lines that yield an
+	// object, or an empty/nil object and false, for lines that should not
+	// yield a result.
+	Parse(string) (T, bool, error)
 }
 
 type consumerFunc[T any] func(string) (T, error)
 
-func (c consumerFunc[T]) Parse(fn string) (T, error) {
-	return c(fn)
+func (c consumerFunc[T]) Parse(fn string) (T, bool, error) {
+	v, err := c(fn)
+	return v, true, err
 }
 
 func Read[T any](filename string, parser func(c string) (T, error)) (chan Line[T], error) {
@@ -66,8 +70,10 @@ func ReadConsumer[T any](filename string, consumer Consumer[T]) (chan Line[T], e
 				return
 			}
 			line := scanner.Text()
-			t, err := consumer.Parse(strings.TrimSpace(line))
-			ch <- Line[T]{Contents: t, Error: err}
+			t, ret, err := consumer.Parse(strings.TrimSpace(line))
+			if ret {
+				ch <- Line[T]{Contents: t, Error: err}
+			}
 		}
 	}()
 	return ch, nil
