@@ -18,6 +18,21 @@ func (l Line[T]) Get() (T, error) {
 	return l.Contents, l.Error
 }
 
+func (l Line[T]) MustGet() T {
+	if l.Error != nil {
+		log.Fatal(l.Error)
+	}
+	return l.Contents
+}
+
+func MustRead[T any](filename string, parser func(c string) (T, error)) chan Line[T] {
+	ch, err := Read(filename, parser)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return ch
+}
+
 // Read starts a goroutine that yields lines on the output channel.
 func Read[T any](filename string, parser func(c string) (T, error)) (chan Line[T], error) {
 	f, err := os.Open(filename)
