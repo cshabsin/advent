@@ -51,7 +51,14 @@ func MustRead[T any](filename string, parser func(c string) (T, error)) chan Lin
 	return ch
 }
 
-// Read starts a goroutine that yields lines on the output channel.
+func MustReadConsumer[T any](filename string, consumer Consumer[T]) chan Line[T] {
+	ch, err := ReadConsumer(filename, consumer)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return ch
+}
+
 func ReadConsumer[T any](filename string, consumer Consumer[T]) (chan Line[T], error) {
 	f, err := os.Open(filename)
 	if err != nil {
