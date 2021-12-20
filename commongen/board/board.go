@@ -141,3 +141,15 @@ func (b Board[T]) Neighbors8(co Coord) []Coord {
 	}
 	return coords
 }
+
+func (b Board[T]) Neighborhood9(co Coord) []Coord {
+	var coords []Coord
+	for _, diff := range [][2]int{{-1, -1}, {-1, 0}, {-1, 1}, {0, -1}, {0, 0}, {0, 1}, {1, -1}, {1, 0}, {1, 1}} {
+		dco := co.Apply(diff)
+		if !b.InBounds(dco) {
+			continue
+		}
+		coords = append(coords, dco)
+	}
+	return coords
+}
