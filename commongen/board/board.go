@@ -28,14 +28,6 @@ type delimiterHaver interface {
 	Delimiter() string
 }
 
-func delim(str fmt.Stringer) string {
-	d, ok := str.(delimiterHaver)
-	if !ok {
-		return " " // default delimiter
-	}
-	return d.Delimiter()
-}
-
 type Board[T fmt.Stringer] [][]T
 
 // String renders the board in string.
@@ -48,7 +40,12 @@ func (b Board[T]) String() string {
 	var s string
 	for r := range b {
 		for c := range b[r] {
-			s += b[r][c].String() + delim(b[r][c])
+			s += b[r][c].String()
+			if d, ok := interface{}(b[r][c]).(delimiterHaver); ok {
+				s += d.Delimiter()
+			} else {
+				s += " "
+			}
 		}
 		s += "\n"
 	}
