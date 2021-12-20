@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/cshabsin/advent/commongen/board"
@@ -39,22 +38,36 @@ func (p *parser) Parse(line string) (image, bool, error) {
 		}
 		return image{}, false, nil
 	}
-	if p.wantBlank {
-		p.wantBlank = false
-		if line != "" {
-			return image{}, false, errors.New("wanted blank line")
-		}
+	if line == "" {
 		return image{}, false, nil
 	}
-	var boardLine []boolS
+	if p.wantBlank {
+		p.wantBlank = false
+		for i := 0; i < 2; i++ {
+			var blankLine []boolS
+			for j := 0; j < len(line)+4; j++ {
+				blankLine = append(blankLine, false)
+			}
+			p.current.board = append(p.current.board, blankLine)
+		}
+	}
+	boardLine := []boolS{false, false}
 	for _, c := range line {
 		boardLine = append(boardLine, c == '#')
 	}
+	boardLine = append(boardLine, false, false)
 	p.current.board = append(p.current.board, boardLine)
 	return image{}, false, nil
 }
 
 func (p *parser) Done() (*image, bool, error) {
+	for i := 0; i < 2; i++ {
+		var blankLine []boolS
+		for j := 0; j < len(p.current.board[0]); j++ {
+			blankLine = append(blankLine, false)
+		}
+		p.current.board = append(p.current.board, blankLine)
+	}
 	return p.current, true, nil
 }
 
