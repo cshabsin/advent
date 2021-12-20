@@ -128,5 +128,5 @@ func calcAllRotations() []Matrix3x3 {
 			}
 		}
 	}
-	return append([]Matrix3x3{Ident()}, rotSet.AsSlice()...)
+	return rotSet.AsSlice()
 }
