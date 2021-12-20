@@ -11,6 +11,15 @@ import (
 )
 
 func main() {
+	// // look at the rotations and multiplications:
+	// v := matrix.Vector3{1, 2, 3}
+	// vs := set.Set[matrix.Vector3]{}
+	// for _, rot := range matrix.AllRotations() {
+	// 	vm := v.Mul(rot)
+	// 	fmt.Println(rot, vm)
+	// 	vs.Add(vm)
+	// }
+	// fmt.Println(len(vs))
 	part1("input.txt")
 }
 
@@ -49,7 +58,7 @@ func newScannerFinder(rawScanners []scanner) *scannerFinder {
 	rc := &scannerFinder{
 		foundScanners:  []int{0},
 		isFound:        set.Set[int]{0: true},
-		foundOffsets:   []matrix.Vector3{matrix.Vector3{0, 0, 0}},
+		foundOffsets:   []matrix.Vector3{{0, 0, 0}},
 		foundRotations: []matrix.Matrix3x3{matrix.Ident()},
 	}
 	var allScanners [][][][]matrix.Vector3
@@ -113,8 +122,44 @@ func readScanners(fn string) []scanner {
 }
 
 type scanner struct {
-	num     int
-	beacons []matrix.Point3
+	num            int
+	beacons        []matrix.Point3
+	rotatedBeacons [][]matrix.Point3
+	beaconVecCache [][][]matrix.Vector3
+}
+
+func (s *scanner) beaconPoints(rotation int) []matrix.Point3 {
+	if s.rotatedBeacons == nil {
+		s.rotatedBeacons = make([][]matrix.Point3, len(matrix.AllRotations()), len(matrix.AllRotations()))
+	}
+	if s.rotatedBeacons[rotation] == nil {
+		rotMatrix := matrix.Rotation(rotation)
+		var rotated []matrix.Point3
+		for _, p := range s.beacons {
+			rotated = append(rotated, p.Mul(rotMatrix))
+		}
+		s.rotatedBeacons[rotation] = rotated
+	}
+	return s.rotatedBeacons[rotation]
+}
+
+func (s *scanner) beaconVecs(origin int, rotation int) []matrix.Vector3 {
+	if s.beaconVecCache == nil {
+		s.beaconVecCache = make([][][]matrix.Vector3, len(s.beacons), len(s.beacons))
+	}
+	if s.beaconVecCache[origin] == nil {
+		s.beaconVecCache[origin] = make([][]matrix.Vector3, len(matrix.AllRotations()), len(matrix.AllRotations()))
+	}
+	if s.beaconVecCache[origin][rotation] != nil {
+		return s.beaconVecCache[origin][rotation]
+	}
+	rotatedPts := s.beaconPoints(rotation)
+	var vecs []matrix.Vector3
+	for _, target := range rotatedPts {
+		vecs = append(vecs, target.Sub(rotatedPts[origin]))
+	}
+	s.beaconVecCache[origin][rotation] = vecs
+	return vecs
 }
 
 type parser struct {
