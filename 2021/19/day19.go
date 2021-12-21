@@ -20,6 +20,13 @@ func main() {
 	// 	vs.Add(vm)
 	// }
 	// fmt.Println(len(vs))
+
+	// sc := readScanners("simple.txt")
+	// for rot := range matrix.AllRotations() {
+	// 	fmt.Println(sc[0].beaconPoints(rot))
+	// 	fmt.Println("+++")
+	// }
+
 	sf := newScannerFinder(readScanners("sample.txt"))
 	fmt.Println(sf.allScanners[0].beaconVecs(0, 0))
 	fmt.Println("---")
@@ -90,7 +97,7 @@ func overlap(cmp, tgt *scanner) bool {
 							}
 						}
 					}
-					if matches > 12 {
+					if matches >= 12 {
 						fmt.Println("matched", cmp.num, "to", tgt.num, "with rot", rot, "and origin", origin)
 						return true
 					}
