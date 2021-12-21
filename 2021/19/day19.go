@@ -27,18 +27,19 @@ func main() {
 	// 	fmt.Println("+++")
 	// }
 
-	sf := newScannerFinder(readScanners("sample.txt"))
-	fmt.Println(sf.allScanners[0].beaconVecs(0, 0))
-	fmt.Println("---")
-	fmt.Println(sf.allScanners[0].beaconVecs(1, 0))
-	fmt.Println("---")
-	fmt.Println(sf.allScanners[0].beaconVecs(0, 1))
-	fmt.Println("---")
-	fmt.Println(sf.allScanners[0].beaconVecs(1, 1))
-	fmt.Println("---")
-	fmt.Println(overlap(sf.allScanners[0], sf.allScanners[1]))
-	//part1("sample.txt")
-	// part1("input.txt")
+	// sf := newScannerFinder(readScanners("sample.txt"))
+	// fmt.Println(sf.allScanners[0].beaconVecs(0, 0))
+	// fmt.Println("---")
+	// fmt.Println(sf.allScanners[0].beaconVecs(1, 0))
+	// fmt.Println("---")
+	// fmt.Println(sf.allScanners[0].beaconVecs(0, 1))
+	// fmt.Println("---")
+	// fmt.Println(sf.allScanners[0].beaconVecs(1, 1))
+	// fmt.Println("---")
+	// fmt.Println(overlap(sf.allScanners[0], sf.allScanners[1]))
+
+	part1("sample.txt")
+	part1("input.txt")
 }
 
 func part1(fn string) {
@@ -49,9 +50,12 @@ func part1(fn string) {
 		for i := range sf.allScanners {
 			if sf.find(i) {
 				numMatches++
-				sf.isFound.Add(i)
-			} else {
-				fmt.Println("find", i, "false")
+				if !sf.isFound[i] {
+					sf.isFound.Add(i)
+					fmt.Println("found", i)
+				}
+				// } else {
+				// fmt.Println("find", i, "false")
 			}
 		}
 		if numMatches == len(sf.allScanners) {
@@ -115,22 +119,9 @@ func (s scannerFinder) find(tgtI int) bool {
 
 	tgtScanner := s.allScanners[tgtI]
 	for _, cmpI := range s.foundScanners {
-		cmpBeaconVecs := s.allScanners[cmpI].beaconVecs(0, 0)
-		for rot := range matrix.AllRotations() {
-			for origin := range tgtScanner.beacons {
-				var matches int
-				for _, tgtBeacon := range tgtScanner.beaconVecs(origin, rot) {
-					for _, cmpBeacon := range cmpBeaconVecs {
-						if tgtBeacon.Eq(cmpBeacon) {
-							matches++
-						}
-					}
-				}
-				if matches > 12 {
-					fmt.Println("matched", cmpI, "to", tgtI, "with rot", rot, "and origin", origin)
-					return true
-				}
-			}
+		cmpScanner := s.allScanners[cmpI]
+		if overlap(cmpScanner, tgtScanner) {
+			return true
 		}
 	}
 	return false
