@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"math/big"
 )
 
 func main() {
@@ -12,11 +11,9 @@ func main() {
 
 func part2() {
 	dg := diracGame{
-		positions: map[diracState]*big.Int{
-			{p1Position: 1, p2Position: 2}: big.NewInt(1),
+		positions: map[diracState]int{
+			{p1Position: 1, p2Position: 2}: 1,
 		},
-		p1win: big.NewInt(0),
-		p2win: big.NewInt(0),
 	}
 	fmt.Println(dg.Summary())
 	for len(dg.positions) != 0 {
@@ -26,100 +23,64 @@ func part2() {
 	}
 	fmt.Println("---")
 	fmt.Println(dg.Summary())
-
-	p1 := new(big.Int).Div(dg.p1win, big.NewInt(27)) // WHERE IS THE 27x factor coming from???
-	p2 := dg.p2win
-	if p1.Cmp(p2) < 0 {
-		fmt.Println("answer:", p2)
-	} else {
-		fmt.Println("answer:", p1)
-	}
 }
 
 type diracState struct {
 	p1Position, p1Score int
 	p2Position, p2Score int
+	p2turn              bool
 }
 
-func (d diracState) after(p1Roll, p2Roll int) diracState {
-	p1Position := d.p1Position + p1Roll
-	for p1Position > 10 {
-		p1Position -= 10
-	}
-	p1Score := d.p1Score + p1Position
-
-	p2Position := d.p2Position
-	p2Score := d.p2Score
-	if p1Score < 21 { // p2 doesn't go if p1 won
-		p2Position = d.p2Position + p2Roll
+func (d diracState) after(roll int) diracState {
+	p1Position, p1Score, p2Position, p2Score := d.p1Position, d.p1Score, d.p2Position, d.p2Score
+	if d.p2turn {
+		p2Position = d.p2Position + roll
 		for p2Position > 10 {
 			p2Position -= 10
 		}
 		p2Score = d.p2Score + p2Position
+
+	} else {
+		p1Position = d.p1Position + roll
+		for p1Position > 10 {
+			p1Position -= 10
+		}
+		p1Score = d.p1Score + p1Position
 	}
-	return diracState{p1Position, p1Score, p2Position, p2Score}
+	return diracState{p1Position, p1Score, p2Position, p2Score, !d.p2turn}
 }
 
 type diracGame struct {
-	positions    map[diracState]*big.Int // map of (position,score):# of universes in that state
-	p1win, p2win *big.Int
+	positions    map[diracState]int // map of (position,score):# of universes in that state
+	p1win, p2win int
 }
 
 func (d diracGame) Summary() string {
-	p1locations := map[int]*big.Int{}
-	p2locations := map[int]*big.Int{}
-	p1scores := map[int]*big.Int{}
-	p2scores := map[int]*big.Int{}
+	p1locations := map[int]int{}
+	p2locations := map[int]int{}
+	p1scores := map[int]int{}
+	p2scores := map[int]int{}
 	for ds, count := range d.positions {
-		if p1locations[ds.p1Position] != nil {
-			p1locations[ds.p1Position].Add(p1locations[ds.p1Position], count)
-		} else {
-			p1locations[ds.p1Position] = new(big.Int).Set(count)
-		}
-		if p2locations[ds.p2Position] != nil {
-			p2locations[ds.p2Position].Add(p2locations[ds.p2Position], count)
-		} else {
-			p2locations[ds.p2Position] = new(big.Int).Set(count)
-		}
-		if p1scores[ds.p1Score] != nil {
-			p1scores[ds.p1Score].Add(p1scores[ds.p1Score], count)
-		} else {
-			p1scores[ds.p1Score] = new(big.Int).Set(count)
-		}
-		if p2scores[ds.p2Score] != nil {
-			p2scores[ds.p2Score].Add(p2scores[ds.p2Score], count)
-		} else {
-			p2scores[ds.p2Score] = new(big.Int).Set(count)
-		}
+		p1locations[ds.p1Position] += count
+		p2locations[ds.p2Position] += count
+		p1scores[ds.p1Score] += count
+		p2scores[ds.p2Score] += count
 	}
 	return fmt.Sprintf("p1: {%d} %v\np2: {%d} %v", d.p1win, p1scores, d.p2win, p2scores)
 }
 
 func (d *diracGame) doTurn() {
-	newPositions := map[diracState]*big.Int{}
+	newPositions := map[diracState]int{}
 	for state, count := range d.positions {
-		for p1Roll1 := 1; p1Roll1 <= 3; p1Roll1++ {
-			for p1Roll2 := 1; p1Roll2 <= 3; p1Roll2++ {
-				for p1Roll3 := 1; p1Roll3 <= 3; p1Roll3++ {
-					for p2Roll1 := 1; p2Roll1 <= 3; p2Roll1++ {
-						for p2Roll2 := 1; p2Roll2 <= 3; p2Roll2++ {
-							for p2Roll3 := 1; p2Roll3 <= 3; p2Roll3++ {
-								newState := state.after(p1Roll1+p1Roll2+p1Roll3, p2Roll1+p2Roll2+p2Roll3)
-								if newState.p1Score >= 21 {
-									d.p1win.Add(d.p1win, count)
-								} else if newState.p2Score >= 21 {
-									d.p2win.Add(d.p2win, count)
-								} else {
-									if newPositions[newState] != nil {
-										newPositions[newState].Add(newPositions[newState], count)
-									} else {
-										newPositions[newState] = new(big.Int).Set(count)
-									}
-								}
-							}
-						}
-					}
-				}
+		for _, roll := range []int{3, 4, 4, 4, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6, 6, 6, 6, 7, 7, 7, 7, 7, 7, 8, 8, 8, 9} {
+			var newState diracState
+			newState = state.after(roll)
+			if newState.p1Score >= 21 {
+				d.p1win += count
+			} else if newState.p2Score >= 21 {
+				d.p2win += count
+			} else {
+				newPositions[newState] += count
 			}
 		}
 	}
