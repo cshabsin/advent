@@ -15,13 +15,9 @@ func part2() {
 			{p1Position: 1, p2Position: 2}: 1,
 		},
 	}
-	fmt.Println(dg.Summary())
 	for len(dg.positions) != 0 {
 		dg.doTurn()
-		fmt.Println("---")
-		fmt.Println(dg.Summary())
 	}
-	fmt.Println("---")
 	fmt.Println(dg.Summary())
 }
 
