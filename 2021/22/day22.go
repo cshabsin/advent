@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/cshabsin/advent/commongen/readinp"
+	"github.com/cshabsin/advent/commongen/set"
 )
 
 func main() {
@@ -21,6 +22,280 @@ func main() {
 }
 
 func part2(fn string) {
+	ch := readinp.MustRead(fn, parse)
+	var cuboids [][]*cuboid
+	var i int
+	for l := range ch {
+		cu := l.MustGet()
+		cu.order = i
+		i++
+		toAdd := set.Set[int]{}
+		for i, cuArr := range cuboids {
+			for _, oid := range cuArr {
+				if oid.Overlaps(cu) {
+					toAdd.Add(i)
+					break
+				}
+			}
+		}
+		switch len(toAdd) {
+		case 0:
+			cuboids = append(cuboids, []*cuboid{cu})
+		case 1:
+			cuboids[*toAdd.AnyValue()] = append(cuboids[*toAdd.AnyValue()], cu)
+		default:
+			// merge the ones to add
+			var newEntry []*cuboid
+			for a := range toAdd {
+				newEntry = append(newEntry, cuboids[a]...)
+			}
+			newCuboids := [][]*cuboid{newEntry}
+			for i, cu := range cuboids {
+				if toAdd.Contains(i) {
+					continue
+				}
+				newCuboids = append(newCuboids, cu)
+			}
+			cuboids = newCuboids
+		}
+	}
+	var clumps []*clump
+	for _, cuList := range cuboids {
+		clumps = append(clumps, clumpsFrom(cuList))
+		fmt.Println(cuList, clumps[len(clumps)-1])
+	}
+	var count int
+	fmt.Println(len(clumps))
+	for _, clump := range clumps {
+		fmt.Println(clump)
+		count += clump.run()
+		fmt.Println(count)
+	}
+	fmt.Println(count)
+}
+
+type clump struct {
+	cuboids                            []*cuboid
+	xmin, xmax, ymin, ymax, zmin, zmax int
+}
+
+func (c clump) run() int {
+	width := c.xmax - c.xmin + 1
+	height := c.ymax - c.ymin + 1
+	depth := c.zmax - c.zmin + 1
+	cube := make([][][]bool, width, width)
+	for x := range cube {
+		cube[x] = make([][]bool, height, height)
+		for y := range cube[x] {
+			cube[x][y] = make([]bool, depth, depth)
+		}
+	}
+	sort.Slice(c.cuboids, func(i, j int) bool { return c.cuboids[i].order < c.cuboids[j].order })
+	for _, oid := range c.cuboids {
+		for x := oid.xmin - c.xmin; x <= oid.xmax-c.xmin; x++ {
+			if x < 0 || x > width {
+				continue
+			}
+			for y := oid.ymin - c.ymin; y <= oid.ymax-c.ymin; y++ {
+				if y < 0 || y > height {
+					continue
+				}
+				for z := oid.zmin - c.zmin; z <= oid.zmax-c.zmin; z++ {
+					if z < 0 || z > depth {
+						continue
+					}
+					cube[x][y][z] = oid.on
+				}
+			}
+		}
+	}
+	var count int
+	for x := range cube {
+		for y := range cube[x] {
+			for z := range cube[x][y] {
+				if cube[x][y][z] {
+					count++
+				}
+			}
+		}
+	}
+
+	return count
+}
+
+func clumpsFrom(cuboids []*cuboid) *clump {
+	xmin := cuboids[0].xmin
+	xmax := cuboids[0].xmax
+	ymin := cuboids[0].ymin
+	ymax := cuboids[0].ymax
+	zmin := cuboids[0].zmin
+	zmax := cuboids[0].zmax
+	for _, cu := range cuboids {
+		if cu.xmin < xmin {
+			xmin = cu.xmin
+		}
+		if cu.xmax > xmax {
+			xmax = cu.xmax
+		}
+		if cu.ymin < ymin {
+			ymin = cu.ymin
+		}
+		if cu.ymax > ymax {
+			ymax = cu.ymax
+		}
+		if cu.zmin < zmin {
+			zmin = cu.zmin
+		}
+		if cu.ymax > zmax {
+			zmax = cu.zmax
+		}
+	}
+	return &clump{
+		cuboids: cuboids,
+		xmin:    xmin,
+		xmax:    xmax,
+		ymin:    ymin,
+		ymax:    ymax,
+		zmin:    zmin,
+		zmax:    zmax,
+	}
+}
+
+func part1(fn string) {
+	ch := readinp.MustRead(fn, parse)
+	var cuboids []*cuboid
+	for l := range ch {
+		cuboids = append(cuboids, l.MustGet())
+	}
+	var cube [101][101][101]bool
+	for _, oid := range cuboids {
+		for x := oid.xmin + 50; x <= oid.xmax+50; x++ {
+			if x < 0 || x > 100 {
+				continue
+			}
+			for y := oid.ymin + 50; y <= oid.ymax+50; y++ {
+				if y < 0 || y > 100 {
+					continue
+				}
+				for z := oid.zmin + 50; z <= oid.zmax+50; z++ {
+					if z < 0 || z > 100 {
+						continue
+					}
+					cube[x][y][z] = oid.on
+				}
+			}
+		}
+	}
+	var count int
+	for x := range cube {
+		for y := range cube[x] {
+			for z := range cube[x][y] {
+				if cube[x][y][z] {
+					count++
+				}
+			}
+		}
+	}
+	fmt.Println(fn, count)
+}
+
+type cuboid struct {
+	order                              int
+	on                                 bool
+	xmin, xmax, ymin, ymax, zmin, zmax int
+}
+
+func (c *cuboid) Overlaps(d *cuboid) bool {
+	if c.xmax < d.xmin || c.xmin > d.xmax || c.ymax < d.ymin || c.xmin > d.ymax || c.zmax < d.zmin || c.zmin > d.zmax {
+		return false
+	}
+	return true
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+func (c cuboid) String() string {
+	s := "off"
+	if c.on {
+		s = "on"
+	}
+	return fmt.Sprintf("%d: %s x=%d..%d,y=%d..%d,z=%d..%d", c.order, s, c.xmin, c.xmax, c.ymin, c.ymax, c.zmin, c.zmax)
+}
+
+var coordRE = regexp.MustCompile(`x=(-?\d*)\.\.(-?\d*),y=(-?\d*)\.\.(-?\d*),z=(-?\d*)\.\.(-?\d*)`)
+
+func parse(line string) (*cuboid, error) {
+	words := strings.Split(line, " ")
+	var on bool
+	if words[0] == "on" {
+		on = true
+	}
+	matches := coordRE.FindStringSubmatch(line)
+	return &cuboid{
+		on:   on,
+		xmin: readinp.Atoi(matches[1]),
+		xmax: readinp.Atoi(matches[2]),
+		ymin: readinp.Atoi(matches[3]),
+		ymax: readinp.Atoi(matches[4]),
+		zmin: readinp.Atoi(matches[5]),
+		zmax: readinp.Atoi(matches[6]),
+	}, nil
+}
+
+func (c *cuboid) split(b *boundaries) []*cuboid {
+	var rc []*cuboid
+	xmin := c.xmin
+	for _, xbound := range b.x {
+		if xbound < xmin {
+			continue
+		}
+		xmax := min(c.xmax, xbound)
+		ymin := c.ymin
+		for _, ybound := range b.y {
+			if ybound < ymin {
+				continue
+			}
+			ymax := min(c.ymax, ybound)
+			zmin := c.zmin
+			for _, zbound := range b.z {
+				if zbound < zmin {
+					continue
+				}
+				zmax := min(c.zmax, zbound)
+				newcub := &cuboid{
+					on:   c.on,
+					xmin: xmin,
+					xmax: xmax,
+					ymin: ymin,
+					ymax: ymax,
+					zmin: zmin,
+					zmax: zmax,
+				}
+				rc = append(rc, newcub)
+				zmin = zmax
+				if zmin == c.zmax {
+					break
+				}
+			}
+			ymin = ymax
+			if ymin == c.ymax {
+				break
+			}
+		}
+		xmin = xmax
+		if xmin == c.xmax {
+			break
+		}
+	}
+	return rc
+}
+
+func part2obsolete(fn string) {
 	ch := readinp.MustRead(fn, parse)
 	var cuboidsRaw []*cuboid
 	bld := newBoundariesBuilder()
@@ -99,137 +374,4 @@ func (bld *boundariesBuilder) build() *boundaries {
 	sort.Sort(sort.IntSlice(y))
 	sort.Sort(sort.IntSlice(z))
 	return &boundaries{x, y, z}
-}
-
-func part1(fn string) {
-	ch := readinp.MustRead(fn, parse)
-	var cuboids []*cuboid
-	for l := range ch {
-		cuboids = append(cuboids, l.MustGet())
-	}
-	var cube [101][101][101]bool
-	for _, oid := range cuboids {
-		for x := oid.xmin + 50; x <= oid.xmax+50; x++ {
-			if x < 0 || x > 100 {
-				continue
-			}
-			for y := oid.ymin + 50; y <= oid.ymax+50; y++ {
-				if y < 0 || y > 100 {
-					continue
-				}
-				for z := oid.zmin + 50; z <= oid.zmax+50; z++ {
-					if z < 0 || z > 100 {
-						continue
-					}
-					cube[x][y][z] = oid.on
-				}
-			}
-		}
-	}
-	var count int
-	for x := range cube {
-		for y := range cube[x] {
-			for z := range cube[x][y] {
-				if cube[x][y][z] {
-					count++
-				}
-			}
-		}
-	}
-	fmt.Println(fn, count)
-}
-
-type cuboid struct {
-	on                                 bool
-	xmin, xmax, ymin, ymax, zmin, zmax int
-}
-
-func (c *cuboid) Overlaps(d *cuboid) bool {
-	if c.xmax < d.xmin || c.xmin > d.xmax || c.ymax < d.ymin || c.xmin > d.ymax || c.zmax < d.zmin || c.zmin > d.zmax {
-		return false
-	}
-	return true
-}
-
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}
-
-func (c *cuboid) split(b *boundaries) []*cuboid {
-	var rc []*cuboid
-	xmin := c.xmin
-	for _, xbound := range b.x {
-		if xbound < xmin {
-			continue
-		}
-		xmax := min(c.xmax, xbound)
-		ymin := c.ymin
-		for _, ybound := range b.y {
-			if ybound < ymin {
-				continue
-			}
-			ymax := min(c.ymax, ybound)
-			zmin := c.zmin
-			for _, zbound := range b.z {
-				if zbound < zmin {
-					continue
-				}
-				zmax := min(c.zmax, zbound)
-				newcub := &cuboid{
-					on:   c.on,
-					xmin: xmin,
-					xmax: xmax,
-					ymin: ymin,
-					ymax: ymax,
-					zmin: zmin,
-					zmax: zmax,
-				}
-				rc = append(rc, newcub)
-				zmin = zmax
-				if zmin == c.zmax {
-					break
-				}
-			}
-			ymin = ymax
-			if ymin == c.ymax {
-				break
-			}
-		}
-		xmin = xmax
-		if xmin == c.xmax {
-			break
-		}
-	}
-	return rc
-}
-
-func (c cuboid) String() string {
-	s := "off"
-	if c.on {
-		s = "on"
-	}
-	return fmt.Sprintf("%s x=%d..%d,y=%d..%d,z=%d..%d", s, c.xmin, c.xmax, c.ymin, c.ymax, c.zmin, c.zmax)
-}
-
-var coordRE = regexp.MustCompile(`x=(-?\d*)\.\.(-?\d*),y=(-?\d*)\.\.(-?\d*),z=(-?\d*)\.\.(-?\d*)`)
-
-func parse(line string) (*cuboid, error) {
-	words := strings.Split(line, " ")
-	var on bool
-	if words[0] == "on" {
-		on = true
-	}
-	matches := coordRE.FindStringSubmatch(line)
-	return &cuboid{
-		on:   on,
-		xmin: readinp.Atoi(matches[1]),
-		xmax: readinp.Atoi(matches[2]),
-		ymin: readinp.Atoi(matches[3]),
-		ymax: readinp.Atoi(matches[4]),
-		zmin: readinp.Atoi(matches[5]),
-		zmax: readinp.Atoi(matches[6]),
-	}, nil
 }

@@ -30,6 +30,13 @@ func (s Set[T]) Clone() Set[T] {
 	return clone
 }
 
+func (s Set[T]) AnyValue() *T {
+	for k := range s {
+		return &k
+	}
+	return nil
+}
+
 func (s Set[T]) AsSlice() []T {
 	var slice []T
 	for v := range s {
