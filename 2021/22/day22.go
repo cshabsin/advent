@@ -26,11 +26,13 @@ func part2(fn string) {
 	bld := newBoundariesBuilder()
 	for l := range ch {
 		c := l.MustGet()
+		if c.xmin >= -50 && c.xmin <= 50 {
+			continue // ignore the core, we can get its numbers from part1
+		}
 		cuboidsRaw = append(cuboidsRaw, c)
 		bld.add(c)
 	}
 	bounds := bld.build()
-	fmt.Println(bounds)
 	var cuboids []*cuboid
 	for _, oid := range cuboidsRaw {
 		cuboids = append(cuboids, oid.split(bounds)...)
@@ -185,7 +187,6 @@ func (c *cuboid) split(b *boundaries) []*cuboid {
 					zmin: zmin,
 					zmax: zmax,
 				}
-				fmt.Println(newcub)
 				rc = append(rc, newcub)
 				zmin = zmax
 				if zmin == c.zmax {
