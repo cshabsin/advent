@@ -72,7 +72,14 @@ func (d diracGame) Summary() string {
 func (d *diracGame) doTurn() {
 	newPositions := map[diracState]int{}
 	for state, count := range d.positions {
-		for _, roll := range []int{3, 4, 4, 4, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6, 6, 6, 6, 7, 7, 7, 7, 7, 7, 8, 8, 8, 9} {
+		for _, roll := range []int{
+			3,
+			4, 4, 4,
+			5, 5, 5, 5, 5, 5,
+			6, 6, 6, 6, 6, 6, 6,
+			7, 7, 7, 7, 7, 7,
+			8, 8, 8,
+			9} {
 			var newState diracState
 			newState = state.after(roll)
 			if newState.p1Score >= 21 {
