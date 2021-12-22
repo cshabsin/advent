@@ -26,6 +26,14 @@ func part2() {
 	}
 	fmt.Println("---")
 	fmt.Println(dg.Summary())
+
+	p1 := new(big.Int).Div(dg.p1win, big.NewInt(27)) // WHERE IS THE 27x factor coming from???
+	p2 := dg.p2win
+	if p1.Cmp(p2) < 0 {
+		fmt.Println("answer:", p2)
+	} else {
+		fmt.Println("answer:", p1)
+	}
 }
 
 type diracState struct {
