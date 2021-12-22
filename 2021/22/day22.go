@@ -23,6 +23,34 @@ func main() {
 
 func part2(fn string) {
 	ch := readinp.MustRead(fn, parse)
+	var cuboids []*cuboid
+	for l := range ch {
+		cu := l.MustGet()
+		cuboids = append(cuboids, cu)
+	}
+	cl := clumpsFrom(cuboids)
+	const clumpSize = 500
+	cube := make([][][]bool, clumpSize, clumpSize)
+	for x := range cube {
+		cube[x] = make([][]bool, clumpSize, clumpSize)
+		for y := range cube[x] {
+			cube[x][y] = make([]bool, clumpSize, clumpSize)
+		}
+	}
+	var total int
+	for xmin := cl.xmin; xmin < cl.xmax+clumpSize*2; xmin += clumpSize {
+		fmt.Println(xmin)
+		for ymin := cl.ymin; ymin < cl.ymax+clumpSize*2; ymin += clumpSize {
+			for zmin := cl.zmin; zmin < cl.zmax+clumpSize*2; zmin += clumpSize {
+				total += run(cube, cuboids, xmin, xmin+clumpSize-1, ymin, ymin+clumpSize-1, zmin, zmin+clumpSize-1)
+			}
+		}
+	}
+	fmt.Println(total)
+}
+
+func part2alsobad(fn string) {
+	ch := readinp.MustRead(fn, parse)
 	var cuboids [][]*cuboid
 	var i int
 	for l := range ch {
@@ -79,29 +107,43 @@ type clump struct {
 	xmin, xmax, ymin, ymax, zmin, zmax int
 }
 
-func (c clump) run() int {
-	width := c.xmax - c.xmin + 1
-	height := c.ymax - c.ymin + 1
-	depth := c.zmax - c.zmin + 1
-	cube := make([][][]bool, width, width)
-	for x := range cube {
-		cube[x] = make([][]bool, height, height)
-		for y := range cube[x] {
-			cube[x][y] = make([]bool, depth, depth)
+func run(cube [][][]bool, cuboids []*cuboid, xmin, xmax, ymin, ymax, zmin, zmax int) int {
+	var found bool
+	for _, cu := range cuboids {
+		if cu.xmax >= xmin && cu.xmin <= xmax && cu.ymax >= ymin && cu.xmin <= ymax && cu.zmax >= zmin && cu.zmin <= zmax {
+			found = true
+			break
 		}
 	}
-	sort.Slice(c.cuboids, func(i, j int) bool { return c.cuboids[i].order < c.cuboids[j].order })
-	for _, oid := range c.cuboids {
-		for x := oid.xmin - c.xmin; x <= oid.xmax-c.xmin; x++ {
-			if x < 0 || x > width {
+	if !found {
+		// fmt.Print(".")
+		return 0
+	}
+	// fmt.Println(xmin, xmax, ymin, ymax, zmin, zmax)
+	width := xmax - xmin + 1
+	height := ymax - ymin + 1
+	depth := zmax - zmin + 1
+	for x := range cube {
+		for y := range cube[x] {
+			for z := range cube[x][y] {
+				cube[x][y][z] = false
+			}
+		}
+	}
+	for _, oid := range cuboids {
+		if oid.xmax < xmin || oid.xmin > xmax || oid.ymax < ymin || oid.xmin > ymax || oid.zmax < zmin || oid.zmin > zmax {
+			continue
+		}
+		for x := oid.xmin - xmin; x <= oid.xmax-xmin; x++ {
+			if x < 0 || x >= width {
 				continue
 			}
-			for y := oid.ymin - c.ymin; y <= oid.ymax-c.ymin; y++ {
-				if y < 0 || y > height {
+			for y := oid.ymin - ymin; y <= oid.ymax-ymin; y++ {
+				if y < 0 || y >= height {
 					continue
 				}
-				for z := oid.zmin - c.zmin; z <= oid.zmax-c.zmin; z++ {
-					if z < 0 || z > depth {
+				for z := oid.zmin - zmin; z <= oid.zmax-zmin; z++ {
+					if z < 0 || z >= depth {
 						continue
 					}
 					cube[x][y][z] = oid.on
@@ -121,6 +163,11 @@ func (c clump) run() int {
 	}
 
 	return count
+
+}
+
+func (c clump) run() int {
+	return run(nil, c.cuboids, c.xmin, c.xmax, c.ymin, c.ymax, c.zmin, c.zmax)
 }
 
 func clumpsFrom(cuboids []*cuboid) *clump {
