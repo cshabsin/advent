@@ -15,7 +15,7 @@ import "fmt"
 
 func main() {
 	possibilities := map[state]int{
-		state{
+		{
 			locations: [16]int{
 				7, 15, 17, 20, // A
 				13, 16, 18, 22, // B
@@ -44,6 +44,7 @@ func main() {
 		}
 		possibilities = newPoss
 		fmt.Println(len(possibilities))
+		fmt.Println(possibilities)
 	}
 }
 
@@ -54,7 +55,7 @@ type state struct {
 }
 
 func (s state) String() string {
-	return fmt.Sprintf("%d (%d):%v", s.value(), s.locations)
+	return fmt.Sprintf("%d:%v", s.value(), s.locations)
 }
 
 func (s state) win() bool {
