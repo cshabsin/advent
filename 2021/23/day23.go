@@ -47,7 +47,7 @@ func main() {
 		}
 		possibilities = newPoss
 		fmt.Println(len(possibilities))
-		fmt.Println(possibilities)
+		// fmt.Println(possibilities)
 	}
 }
 
@@ -81,18 +81,26 @@ func (s state) String() string {
 		[2]int{1, 8},
 		[2]int{1, 10},
 		[2]int{1, 11},
-		[2]int{2, 4},
-		[2]int{3, 4},
-		[2]int{4, 4},
-		[2]int{5, 4},
-		[2]int{2, 6},
-		[2]int{3, 6},
-		[2]int{4, 6},
-		[2]int{5, 6},
-		[2]int{2, 8},
-		[2]int{3, 8},
-		[2]int{4, 8},
-		[2]int{5, 8},
+
+		[2]int{2, 3},
+		[2]int{3, 3},
+		[2]int{4, 3},
+		[2]int{5, 3},
+
+		[2]int{2, 5},
+		[2]int{3, 5},
+		[2]int{4, 5},
+		[2]int{5, 5},
+
+		[2]int{2, 7},
+		[2]int{3, 7},
+		[2]int{4, 7},
+		[2]int{5, 7},
+
+		[2]int{2, 9},
+		[2]int{3, 9},
+		[2]int{4, 9},
+		[2]int{5, 9},
 	}
 	for i, loc := range s.locations {
 		var r rune
@@ -107,7 +115,7 @@ func (s state) String() string {
 		} else {
 			r = '?'
 		}
-		board[locations[loc][0]] = replaceAtIndex(board[locations[loc][0]], locations[loc][1], 'r')
+		board[locations[loc][0]] = replaceAtIndex(board[locations[loc][0]], locations[loc][1], r)
 	}
 	return fmt.Sprintf("%d:\n%s", s.value(), strings.Join(board, "\n"))
 }
