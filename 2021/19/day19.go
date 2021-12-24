@@ -11,33 +11,6 @@ import (
 )
 
 func main() {
-	// // look at the rotations and multiplications:
-	// v := matrix.Vector3{1, 2, 3}
-	// vs := set.Set[matrix.Vector3]{}
-	// for _, rot := range matrix.AllRotations() {
-	// 	vm := v.Mul(rot)
-	// 	fmt.Println(rot, vm)
-	// 	vs.Add(vm)
-	// }
-	// fmt.Println(len(vs))
-
-	// sc := readScanners("simple.txt")
-	// for rot := range matrix.AllRotations() {
-	// 	fmt.Println(sc[0].beaconPoints(rot))
-	// 	fmt.Println("+++")
-	// }
-
-	// sf := newScannerFinder(readScanners("sample.txt"))
-	// fmt.Println(sf.allScanners[0].beaconVecs(0, 0))
-	// fmt.Println("---")
-	// fmt.Println(sf.allScanners[0].beaconVecs(1, 0))
-	// fmt.Println("---")
-	// fmt.Println(sf.allScanners[0].beaconVecs(0, 1))
-	// fmt.Println("---")
-	// fmt.Println(sf.allScanners[0].beaconVecs(1, 1))
-	// fmt.Println("---")
-	// fmt.Println(overlap(sf.allScanners[0], sf.allScanners[1]))
-
 	part1("sample.txt")
 	part1("input.txt")
 }
@@ -52,6 +25,7 @@ func part1(fn string) {
 				numMatches++
 				if !sf.isFound[i] {
 					sf.isFound.Add(i)
+					sf.foundScanners = append(sf.foundScanners, i)
 					fmt.Println("found", i)
 				}
 				// } else {
@@ -206,3 +180,30 @@ func (p *parser) Done() (**scanner, bool, error) {
 	s := &p.current
 	return &s, true, nil
 }
+
+// // look at the rotations and multiplications:
+// v := matrix.Vector3{1, 2, 3}
+// vs := set.Set[matrix.Vector3]{}
+// for _, rot := range matrix.AllRotations() {
+// 	vm := v.Mul(rot)
+// 	fmt.Println(rot, vm)
+// 	vs.Add(vm)
+// }
+// fmt.Println(len(vs))
+
+// sc := readScanners("simple.txt")
+// for rot := range matrix.AllRotations() {
+// 	fmt.Println(sc[0].beaconPoints(rot))
+// 	fmt.Println("+++")
+// }
+
+// sf := newScannerFinder(readScanners("sample.txt"))
+// fmt.Println(sf.allScanners[0].beaconVecs(0, 0))
+// fmt.Println("---")
+// fmt.Println(sf.allScanners[0].beaconVecs(1, 0))
+// fmt.Println("---")
+// fmt.Println(sf.allScanners[0].beaconVecs(0, 1))
+// fmt.Println("---")
+// fmt.Println(sf.allScanners[0].beaconVecs(1, 1))
+// fmt.Println("---")
+// fmt.Println(overlap(sf.allScanners[0], sf.allScanners[1]))
