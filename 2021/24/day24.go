@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -56,7 +57,7 @@ func oldMmain() {
 		}
 		statements = append(statements, st)
 	}
-	i := 71673396132593
+	i := 91457289443995
 	for {
 		if run(statements, strconv.Itoa(i)) {
 			fmt.Println(i)
@@ -509,15 +510,24 @@ func main() {
 	vals := map[int]int{0: 0}
 	for _, st := range steps {
 		afterVals := map[int]int{}
-		for z, max := range vals {
+		var valKeys []int
+		for z := range vals {
+			valKeys = append(valKeys, z)
+		}
+		sort.Sort(sort.IntSlice(valKeys))
+		for _, z := range valKeys {
+			max := vals[z]
 			next := calculate(st, z)
-			for z, digit := range next {
-				afterVals[z] = max*10 + digit
+			for newZ, digit := range next {
+				afterVals[newZ] = max*10 + digit
 			}
 		}
 		vals = afterVals
 		fmt.Println(len(vals))
 	}
+	// 61896178354892
+	// 71673396132593
+	// 91457289443995
 	fmt.Println(vals[0])
 	// for i := 99990898000000; i > 10000000000000; i-- {
 	// 	if pgm1(i) {
