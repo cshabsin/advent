@@ -35,6 +35,7 @@ func part1(fn string) {
 		}
 		fmt.Println(i, len(sf.allScanners[sf.foundScanners[i]].beacons), newPts)
 	}
+	fmt.Println(len(beacons))
 }
 
 type scannerFinder struct {
@@ -71,7 +72,7 @@ func overlap(cmp, tgt *scanner, cmpRot int) (bool, matrix.Vector3, int) {
 					for j, cmpBeacon := range cmpBeaconVecs {
 						if tgtBeacon.Eq(cmpBeacon) {
 							matches++
-							offset = tgt.beaconPoints(rot)[i].Sub(cmp.beaconPoints(0)[j])
+							offset = tgt.beaconPoints(rot)[i].Sub(cmp.beaconPoints(cmpRot)[j])
 						}
 					}
 				}
@@ -97,6 +98,7 @@ func (s *scannerFinder) find(tgtI int) bool {
 		if found {
 			s.isFound.Add(tgtI)
 			s.foundScanners = append(s.foundScanners, tgtI)
+			offset = offset.Add(s.foundOffsets[i])
 			s.foundOffsets = append(s.foundOffsets, offset)
 			s.foundRotations = append(s.foundRotations, rot)
 			return true

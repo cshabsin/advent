@@ -38,6 +38,10 @@ func (v Vector3) Eq(w Vector3) bool {
 	return v[0] == w[0] && v[1] == w[1] && v[2] == w[2]
 }
 
+func (v Vector3) Add(w Vector3) Vector3 {
+	return Vector3{v[0] + w[0], v[1] + w[1], v[2] + w[2]}
+}
+
 type Matrix3x3 [3][3]int
 
 func Ident() Matrix3x3 {
