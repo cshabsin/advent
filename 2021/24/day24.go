@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/cshabsin/advent/2021/24/pgm"
 	"github.com/cshabsin/advent/commongen/readinp"
 )
 
@@ -55,7 +56,7 @@ func oldMmain() {
 		}
 		statements = append(statements, st)
 	}
-	i := 99999966200000
+	i := 71673396132593
 	for {
 		if run(statements, strconv.Itoa(i)) {
 			fmt.Println(i)
@@ -154,85 +155,26 @@ const (
 )
 
 // codegen
-func pgm(i int) bool {
+func pgm1(i int) bool {
 	in := strconv.Itoa(i)
 	inIdx := 0
 	var w, x, y, z int
 	w = readinp.Atoi(string(in[inIdx]))
 	inIdx++
-	x *= 0
-	x += z
-	x = x % 26
-	z = z / 1
-	x += 15
-	if x == w {
-		x = 1
-	} else {
-		x = 0
-	}
-	if x == 0 {
-		x = 1
-	} else {
-		x = 0
-	}
-	y *= 0
-	y += 25
-	y *= x
-	y += 1
-	z *= y
-	y *= 0
-	y += w
-	y += 4
-	y *= x
-	z += y
+	y = w + 4 // 5-13
+	z = y     // 5-13
 	w = readinp.Atoi(string(in[inIdx]))
 	inIdx++
-	x *= 0
-	x += z
-	x = x % 26
-	z = z / 1
-	x += 14
-	if x == w {
-		x = 1
-	} else {
-		x = 0
-	}
-	if x == 0 {
-		x = 1
-	} else {
-		x = 0
-	}
-	y *= 0
-	y += 25
-	y *= x
-	y += 1
-	z *= y
-	y *= 0
-	y += w
-	y += 16
-	y *= x
-	z += y
+	x = 1
+	y = 26
+	z *= y     //(5-13)*26
+	y = w + 16 //17-25
+	z += y     //(5-13)*26 + (17-25)
 	w = readinp.Atoi(string(in[inIdx]))
 	inIdx++
-	x *= 0
-	x += z
-	x = x % 26
-	z = z / 1
-	x += 11
-	if x == w {
-		x = 1
-	} else {
-		x = 0
-	}
-	if x == 0 {
-		x = 1
-	} else {
-		x = 0
-	}
-	y *= 0
-	y += 25
-	y *= x
-	y += 1
+	x = y + 11 // (28-36)
+	x = 1
+	y = 25*x + 1
 	z *= y
 	y *= 0
 	y += w
@@ -539,13 +481,63 @@ func pgm(i int) bool {
 	return z == 0
 }
 
+type step struct {
+	xadd, yadd int
+}
+
+func calculate(s step, z int) map[int]int {
+	out := map[int]int{}
+	for w := 1; w <= 9; w++ {
+		c := &pgm.Compy{
+			W: w,
+			Z: z,
+		}
+		c.XBlock(s.xadd)
+		c.YBlock(s.yadd)
+		out[c.Z] = w
+	}
+	return out
+}
+
 func main() {
-	for i := 99994110600000; i > 10000000000000; i-- {
-		if pgm(i) {
-			fmt.Println(i)
+	steps := []step{
+		{15, 4}, {14, 16}, {11, 14}, {-13, 3},
+		{14, 11}, {15, 13}, {-7, 11}, {10, 7},
+		{-12, 12}, {15, 15}, {-16, 13}, {-9, 1},
+		{-8, 15}, {-8, 4},
+	}
+	vals := map[int]int{0: 0}
+	for _, st := range steps {
+		afterVals := map[int]int{}
+		for z, max := range vals {
+			next := calculate(st, z)
+			for z, digit := range next {
+				afterVals[z] = max*10 + digit
+			}
 		}
-		if i%100000 == 0 {
-			fmt.Println("...", i)
-		}
+		vals = afterVals
+		fmt.Println(len(vals))
+	}
+	fmt.Println(vals[0])
+	// for i := 99990898000000; i > 10000000000000; i-- {
+	// 	if pgm1(i) {
+	// 		fmt.Println(i)
+	// 	}
+	// 	if i%100000 == 0 {
+	// 		fmt.Println("...", i)
+	// 	}
+	// }
+
+}
+
+// maybe not actually 5
+func try5() {
+	for i := 0; i < 10000; i++ {
+		c := pgm.Compy{In: fmt.Sprintf("%04d", i)}
+		c.XBlock(15)
+		c.YBlock(4)
+		c.XBlock(14)
+		c.XBlock(16)
+		fmt.Println(i, ":", c.Z)
 	}
 }
