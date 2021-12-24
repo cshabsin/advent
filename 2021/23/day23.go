@@ -1,6 +1,9 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 // #############
 // #..x.x.x.x..#   01 2 3 4 56
@@ -54,8 +57,59 @@ type state struct {
 	prevMover int
 }
 
+func replaceAtIndex(s string, i int, r rune) string {
+	out := []rune(s)
+	out[i] = r
+	return string(out)
+}
+
 func (s state) String() string {
-	return fmt.Sprintf("%d:%v", s.value(), s.locations)
+	board := []string{
+		"#############",
+		"#...........#",
+		"###.#.#.#.###",
+		"  #.#.#.#.#  ",
+		"  #.#.#.#.#  ",
+		"  #.#.#.#.#  ",
+		"  #########  ",
+	}
+	locations := [][2]int{
+		[2]int{1, 1},
+		[2]int{1, 2},
+		[2]int{1, 4},
+		[2]int{1, 6},
+		[2]int{1, 8},
+		[2]int{1, 10},
+		[2]int{1, 11},
+		[2]int{2, 4},
+		[2]int{3, 4},
+		[2]int{4, 4},
+		[2]int{5, 4},
+		[2]int{2, 6},
+		[2]int{3, 6},
+		[2]int{4, 6},
+		[2]int{5, 6},
+		[2]int{2, 8},
+		[2]int{3, 8},
+		[2]int{4, 8},
+		[2]int{5, 8},
+	}
+	for i, loc := range s.locations {
+		var r rune
+		if isA(i) {
+			r = 'A'
+		} else if isB(i) {
+			r = 'B'
+		} else if isC(i) {
+			r = 'C'
+		} else if isD(i) {
+			r = 'D'
+		} else {
+			r = '?'
+		}
+		board[locations[loc][0]] = replaceAtIndex(board[locations[loc][0]], locations[loc][1], 'r')
+	}
+	return fmt.Sprintf("%d:\n%s", s.value(), strings.Join(board, "\n"))
 }
 
 func (s state) win() bool {
