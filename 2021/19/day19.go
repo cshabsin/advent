@@ -18,24 +18,12 @@ func main() {
 func part1(fn string) {
 	sf := newScannerFinder(readScanners(fn))
 	fmt.Println("scannerfinder initialized")
-	for {
-		var numMatches int
+	for len(sf.foundScanners) != len(sf.allScanners) {
 		for i := range sf.allScanners {
-			if sf.find(i) {
-				numMatches++
-				if !sf.isFound[i] {
-					sf.isFound.Add(i)
-					sf.foundScanners = append(sf.foundScanners, i)
-					fmt.Println("found", i)
-				}
-				// } else {
-				// fmt.Println("find", i, "false")
-			}
-		}
-		if numMatches == len(sf.allScanners) {
-			break
+			sf.find(i)
 		}
 	}
+
 }
 
 type scannerFinder struct {
@@ -44,10 +32,10 @@ type scannerFinder struct {
 	// Note: allBeacons[*][*][x][x] == 0,0,0
 	allScanners []*scanner
 
-	foundScanners  []int              // each entry is an index into allScanners
-	isFound        set.Set[int]       // each allScanners index that has been added to foundScanners (for efficient checking)
-	foundOffsets   []matrix.Vector3   // each entry is the location of the given scanner relative to the "origin"
-	foundRotations []matrix.Matrix3x3 // each entry is the rotation vector of the given scanner
+	foundScanners  []int            // each entry is an index into allScanners
+	isFound        set.Set[int]     // each allScanners index that has been added to foundScanners (for efficient checking)
+	foundOffsets   []matrix.Vector3 // each entry is the location of the given scanner relative to the "origin"
+	foundRotations []int            // each entry is the rotation index of the given scanner
 }
 
 func newScannerFinder(rawScanners []*scanner) *scannerFinder {
@@ -56,14 +44,14 @@ func newScannerFinder(rawScanners []*scanner) *scannerFinder {
 		foundScanners:  []int{0},
 		isFound:        set.Set[int]{0: true},
 		foundOffsets:   []matrix.Vector3{{0, 0, 0}},
-		foundRotations: []matrix.Matrix3x3{matrix.Ident()},
+		foundRotations: []int{0},
 	}
 	return rc
 }
 
-func overlap(cmp, tgt *scanner) bool {
+func overlap(cmp, tgt *scanner, cmpRot int) (bool, matrix.Vector3, int) {
 	for cmpOrigin := range cmp.beacons {
-		cmpBeaconVecs := cmp.beaconVecs(cmpOrigin, 0)
+		cmpBeaconVecs := cmp.beaconVecs(cmpOrigin, cmpRot)
 		for rot := range matrix.AllRotations() {
 			for origin := range tgt.beacons {
 				var matches int
@@ -77,24 +65,29 @@ func overlap(cmp, tgt *scanner) bool {
 					}
 				}
 				if matches >= 12 {
-					fmt.Println("matched", cmp.num, "to", tgt.num, "with rot", rot, "and origin", origin, "offset", offset)
-					return true
+					fmt.Println("matched", tgt.num, "to", cmp.num, "with rot", rot, "and origin", origin, "offset", offset)
+					return true, offset, rot
 				}
 			}
 		}
 	}
-	return false
+	return false, matrix.Vector3{}, 0
 }
 
-func (s scannerFinder) find(tgtI int) bool {
+func (s *scannerFinder) find(tgtI int) bool {
 	if s.isFound[tgtI] {
 		return true
 	}
 
 	tgtScanner := s.allScanners[tgtI]
-	for _, cmpI := range s.foundScanners {
+	for i, cmpI := range s.foundScanners {
 		cmpScanner := s.allScanners[cmpI]
-		if overlap(cmpScanner, tgtScanner) {
+		found, offset, rot := overlap(cmpScanner, tgtScanner, s.foundRotations[i])
+		if found {
+			s.isFound.Add(tgtI)
+			s.foundScanners = append(s.foundScanners, tgtI)
+			s.foundOffsets = append(s.foundOffsets, offset)
+			s.foundRotations = append(s.foundRotations, rot)
 			return true
 		}
 	}
