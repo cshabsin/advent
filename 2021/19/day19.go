@@ -23,7 +23,18 @@ func part1(fn string) {
 			sf.find(i)
 		}
 	}
-
+	beacons := map[matrix.Point3]bool{}
+	for i := range sf.foundScanners {
+		var newPts int
+		for _, pt := range sf.allScanners[sf.foundScanners[i]].beaconPoints(sf.foundRotations[i]) {
+			pt = pt.Offset(sf.foundOffsets[i])
+			if !beacons[pt] {
+				newPts++
+				beacons[pt] = true
+			}
+		}
+		fmt.Println(i, len(sf.allScanners[sf.foundScanners[i]].beacons), newPts)
+	}
 }
 
 type scannerFinder struct {

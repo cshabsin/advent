@@ -19,6 +19,10 @@ func (p Point3) Mul(rot Matrix3x3) Point3 {
 	return Point3(Vector3(p).Mul(rot))
 }
 
+func (p Point3) Offset(q Vector3) Point3 {
+	return Point3{p[0] + q[0], p[1] + q[1], p[2] + q[2]}
+}
+
 // Vector3 is a vector in 3-space, or a difference between two points.
 type Vector3 [3]int
 
