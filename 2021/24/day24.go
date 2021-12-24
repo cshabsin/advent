@@ -488,7 +488,7 @@ type step struct {
 
 func calculate(s step, z int) map[int]int {
 	out := map[int]int{}
-	for w := 1; w <= 9; w++ {
+	for w := 9; w >= 1; w-- {
 		c := &pgm.Compy{
 			W: w,
 			Z: z,
@@ -514,7 +514,8 @@ func main() {
 		for z := range vals {
 			valKeys = append(valKeys, z)
 		}
-		sort.Sort(sort.IntSlice(valKeys))
+		// sort.Sort(sort.IntSlice(valKeys))
+		sort.Slice(valKeys, func(i, j int) bool { return valKeys[i] >= valKeys[j] })
 		for _, z := range valKeys {
 			max := vals[z]
 			next := calculate(st, z)
