@@ -1,7 +1,5 @@
 package matrix
 
-import "github.com/cshabsin/advent/commongen/set"
-
 var (
 	ident = Matrix3x3{
 		{1, 0, 0},
@@ -119,14 +117,23 @@ func calcAllRotations() []Matrix3x3 {
 		{0, 0, -1},
 		{0, 1, 0},
 	}
-	rotSet := set.Set[Matrix3x3]{}
+	rotations := []Matrix3x3{ident, zRot, yRot, xRot}
 	for x := 0; x < 4; x++ {
 		for y := 0; y < 4; y++ {
 			for z := 0; z < 4; z++ {
 				val := xRot.Pow(x).Mul(yRot.Pow(y)).Mul(zRot.Pow(z))
-				rotSet.Add(val)
+				var found bool
+				for _, rot := range rotations {
+					if rot == val {
+						found = true
+						break
+					}
+				}
+				if !found {
+					rotations = append(rotations, val)
+				}
 			}
 		}
 	}
-	return rotSet.AsSlice()
+	return rotations
 }

@@ -45,7 +45,7 @@ type scannerFinder struct {
 	allScanners []*scanner
 
 	foundScanners  []int              // each entry is an index into allScanners
-	isFound        set.Set[int]       // each allScanners index that has been added to foundScanners
+	isFound        set.Set[int]       // each allScanners index that has been added to foundScanners (for efficient checking)
 	foundOffsets   []matrix.Vector3   // each entry is the location of the given scanner relative to the "origin"
 	foundRotations []matrix.Matrix3x3 // each entry is the rotation vector of the given scanner
 }
@@ -63,22 +63,22 @@ func newScannerFinder(rawScanners []*scanner) *scannerFinder {
 
 func overlap(cmp, tgt *scanner) bool {
 	for cmpOrigin := range cmp.beacons {
-		for cmpRot := range matrix.AllRotations() {
-			cmpBeaconVecs := cmp.beaconVecs(cmpOrigin, cmpRot)
-			for rot := range matrix.AllRotations() {
-				for origin := range tgt.beacons {
-					var matches int
-					for _, tgtBeacon := range tgt.beaconVecs(origin, rot) {
-						for _, cmpBeacon := range cmpBeaconVecs {
-							if tgtBeacon.Eq(cmpBeacon) {
-								matches++
-							}
+		cmpBeaconVecs := cmp.beaconVecs(cmpOrigin, 0)
+		for rot := range matrix.AllRotations() {
+			for origin := range tgt.beacons {
+				var matches int
+				var offset matrix.Vector3
+				for i, tgtBeacon := range tgt.beaconVecs(origin, rot) {
+					for j, cmpBeacon := range cmpBeaconVecs {
+						if tgtBeacon.Eq(cmpBeacon) {
+							matches++
+							offset = tgt.beaconPoints(rot)[i].Sub(cmp.beaconPoints(0)[j])
 						}
 					}
-					if matches >= 12 {
-						fmt.Println("matched", cmp.num, "to", tgt.num, "with rot", rot, "and origin", origin)
-						return true
-					}
+				}
+				if matches >= 12 {
+					fmt.Println("matched", cmp.num, "to", tgt.num, "with rot", rot, "and origin", origin, "offset", offset)
+					return true
 				}
 			}
 		}
