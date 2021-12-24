@@ -35,7 +35,29 @@ func part1(fn string) {
 		}
 		fmt.Println(i, len(sf.allScanners[sf.foundScanners[i]].beacons), newPts)
 	}
-	fmt.Println(len(beacons))
+	fmt.Println("part 1:", len(beacons))
+
+	var maxDist int
+	for _, offsetI := range sf.foundOffsets {
+		for _, offsetJ := range sf.foundOffsets {
+			// do i need to handle rotations?
+			if m := manhattan(offsetI, offsetJ); m > maxDist {
+				maxDist = m
+			}
+		}
+	}
+	fmt.Println("part 2:", maxDist)
+}
+
+func abs(i int) int {
+	if i < 0 {
+		return -i
+	}
+	return i
+}
+
+func manhattan(v matrix.Vector3, w matrix.Vector3) int {
+	return abs(v[0]-w[0]) + abs(v[1]-w[1]) + abs(v[2]-w[2])
 }
 
 type scannerFinder struct {
