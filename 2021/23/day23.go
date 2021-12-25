@@ -17,16 +17,19 @@ import (
 // 7-1, 7-2, 1-2, 11-2, 11-3, 2-3, 15-3, 15-4, 3-4, 19-4, 19-5, 4-5
 
 func main() {
-	possibilities := map[state]int{
-		{
-			locations: [16]int{
-				7, 15, 17, 20, // A
-				13, 16, 18, 22, // B
-				10, 12, 19, 21, // C
-				8, 9, 11, 14, // D
-			},
-		}: 0,
+	initial := state{
+		locations: [16]int{
+			7, 15, 17, 20, // A
+			13, 16, 18, 22, // B
+			10, 12, 19, 21, // C
+			8, 9, 11, 14, // D
+		},
 	}
+	fmt.Println(initial)
+	p2, _ := initial.move(10, 5, 2)
+	fmt.Println(p2, p2.prevMover, p2.prevDir)
+	fmt.Println(p2.canMove(10, 4))
+	possibilities := map[state]int{initial: 0}
 	for {
 		newPoss := map[state]int{}
 		for state, cost := range possibilities {
@@ -46,8 +49,18 @@ func main() {
 			}
 		}
 		possibilities = newPoss
+		fmt.Println("=====")
 		fmt.Println(len(possibilities))
 		// fmt.Println(possibilities)
+		i := 0
+		for p, cost := range possibilities {
+			if i > 3 {
+				break
+			}
+			i++
+			fmt.Println(cost, p)
+			fmt.Println("---")
+		}
 	}
 }
 
@@ -390,7 +403,7 @@ func (s state) canMove(i int, to int) bool {
 		return locMatchesPod(i, to) && s.isDDone()
 	}
 	if s.prevMover == i {
-		if s.locations[i] < to {
+		if s.locations[i] > to {
 			// moving to the left is only possible if previous direction was left
 			return s.prevDir < 0
 		}
@@ -411,25 +424,25 @@ func (s state) direction(i int, to int) int {
 			return 1
 		}
 	}
-	if isA(from) {
+	if isLocA(from) {
 		if to == 1 {
 			return -1
 		}
 		return 1
 	}
-	if isB(from) {
+	if isLocB(from) {
 		if to == 2 {
 			return -1
 		}
 		return 1
 	}
-	if isC(from) {
+	if isLocC(from) {
 		if to == 3 {
 			return -1
 		}
 		return 1
 	}
-	if isD(from) {
+	if isLocD(from) {
 		if to == 4 {
 			return -1
 		}
