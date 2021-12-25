@@ -55,6 +55,7 @@ type state struct {
 	// 0-3 a, 4-7 b, 8-11 c, 12-15 d
 	locations [16]int
 	prevMover int
+	prevDir   int // -1 for leftward, 1 for rightward
 }
 
 func replaceAtIndex(s string, i int, r rune) string {
@@ -306,11 +307,8 @@ func locMatchesPod(i int, loc int) bool {
 	return false
 }
 
-func (s state) canMove(i int, to int) bool {
-	if !isHall(s.locations[i]) {
-		return true
-	}
-	if isLocA(to) {
+func (s state) isADone() bool {
+	for j := 7; j < 11; j++ {
 		for j := range s.locations {
 			if isA(j) {
 				continue
@@ -320,7 +318,11 @@ func (s state) canMove(i int, to int) bool {
 			}
 		}
 	}
-	if isLocB(to) {
+	return true
+}
+
+func (s state) isBDone() bool {
+	for j := 11; j < 15; j++ {
 		for j := range s.locations {
 			if isB(j) {
 				continue
@@ -330,33 +332,110 @@ func (s state) canMove(i int, to int) bool {
 			}
 		}
 	}
-	if isLocC(to) {
-		for j := range s.locations {
-			if isC(j) {
-				continue
-			}
-			if isLocC(s.locations[j]) {
-				return false
-			}
+	return true
+}
+
+func (s state) isCDone() bool {
+	for j := range s.locations {
+		if isC(j) {
+			continue
 		}
+		if isLocC(s.locations[j]) {
+			return false
+		}
+	}
+	return true
+}
+
+func (s state) isDDone() bool {
+	for j := range s.locations {
+		if isD(j) {
+			continue
+		}
+		if isLocD(s.locations[j]) {
+			return false
+		}
+	}
+	return true
+}
+
+func (s state) canMove(i int, to int) bool {
+	if !isHall(s.locations[i]) && (to < s.locations[i]) {
+		return true
+	}
+	if s.prevMover != i {
+		if isA(i) && !s.isADone() {
+			return false
+		}
+		if isB(i) && !s.isBDone() {
+			return false
+		}
+		if isC(i) && !s.isCDone() {
+			return false
+		}
+		if isD(i) && !s.isDDone() {
+			return false
+		}
+	}
+	if isLocA(to) {
+		return locMatchesPod(i, to) && s.isADone()
+	}
+	if isLocB(to) {
+		return locMatchesPod(i, to) && s.isBDone()
+	}
+	if isLocC(to) {
+		return locMatchesPod(i, to) && s.isCDone()
 	}
 	if isLocD(to) {
-		for j := range s.locations {
-			if isD(j) {
-				continue
-			}
-			if isLocD(s.locations[j]) {
-				return false
-			}
-		}
-	}
-	if locMatchesPod(i, to) {
-		return true
+		return locMatchesPod(i, to) && s.isDDone()
 	}
 	if s.prevMover == i {
-		return true
+		if s.locations[i] < to {
+			// moving to the left is only possible if previous direction was left
+			return s.prevDir < 0
+		}
+		return s.prevDir >= 0
 	}
 	return false
+}
+
+func (s state) direction(i int, to int) int {
+	if !isHall(to) {
+		return 0
+	}
+	from := s.locations[i]
+	if isHall(from) {
+		if from < to {
+			return -1
+		} else {
+			return 1
+		}
+	}
+	if isA(from) {
+		if to == 1 {
+			return -1
+		}
+		return 1
+	}
+	if isB(from) {
+		if to == 2 {
+			return -1
+		}
+		return 1
+	}
+	if isC(from) {
+		if to == 3 {
+			return -1
+		}
+		return 1
+	}
+	if isD(from) {
+		if to == 4 {
+			return -1
+		}
+		return 1
+	}
+	return 0 // should never get here
 }
 
 func (s state) move(i int, loc int, dist int) (*state, int) {
@@ -371,6 +450,7 @@ func (s state) move(i int, loc int, dist int) (*state, int) {
 	s2 := &state{
 		locations: cp(s.locations),
 		prevMover: i,
+		prevDir:   s.direction(i, loc),
 	}
 	s2.locations[i] = loc
 	return s2, dist * cost(i) // return state where given pod moves to location
