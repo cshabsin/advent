@@ -50,6 +50,10 @@ func main() {
 		if i == 0 {
 			fmt.Println("====== Processing:", nextState, "(", len(sh.states), ")")
 		}
+		i++
+		if i == 500000 {
+			i = 0
+		}
 		if visitedStates[nextState.locations] {
 			continue
 		}
@@ -59,13 +63,9 @@ func main() {
 			if s.win() {
 				fmt.Println("win!")
 				fmt.Println(s, "cost:", s.costSoFar)
-				continue
+				return
 			}
 			heap.Push(sh, s)
-		}
-		i++
-		if i == 100000 {
-			i = 0
 		}
 	}
 }
@@ -243,7 +243,7 @@ var neighbors2 = [][]int{
 
 var aVal = []int{
 	2, 5, 5, 7, 9, 11, 8, // hall
-	3, 2, 1, 0, // a
+	-20, -30, -40, -50, // a
 	7, 8, 9, 10, // b
 	9, 10, 11, 12, // c
 	11, 12, 13, 14, // d
@@ -252,7 +252,7 @@ var aVal = []int{
 var bVal = []int{
 	4, 7, 5, 5, 7, 9, 6, // hall
 	7, 8, 9, 10, // a
-	3, 2, 1, 0, // b
+	-20, -30, -40, -50, // b
 	7, 8, 9, 10, // c
 	9, 10, 11, 12, // d
 }
@@ -261,7 +261,7 @@ var cVal = []int{
 	6, 9, 7, 5, 5, 7, 4, // hall
 	9, 10, 11, 12, // a
 	7, 8, 9, 10, // b
-	3, 2, 1, 0, // c
+	-20, -30, -40, -50, // c
 	7, 8, 9, 10, // d
 }
 
@@ -270,7 +270,7 @@ var dVal = []int{
 	11, 12, 13, 14, // a
 	9, 10, 11, 12, // b
 	7, 8, 9, 10, // c
-	3, 2, 1, 0, // d
+	-20, -30, -40, -50, // d
 }
 
 func (s state) value() int {
@@ -279,13 +279,13 @@ func (s state) value() int {
 		value += aVal[s.locations[i]]
 	}
 	for i := 4; i < 8; i++ {
-		value += 5 * bVal[s.locations[i]]
+		value += 10 * bVal[s.locations[i]]
 	}
 	for i := 8; i < 12; i++ {
-		value += 25 * cVal[s.locations[i]]
+		value += 100 * cVal[s.locations[i]]
 	}
 	for i := 12; i < 16; i++ {
-		value += 125 * dVal[s.locations[i]]
+		value += 1000 * dVal[s.locations[i]]
 	}
 	return value
 }
@@ -356,6 +356,7 @@ func locMatchesPod(i int, loc int) bool {
 	return false
 }
 
+// return true if the only thing in the A column is A pods, i.e. the column is "done" enough for more A pods to move in
 func (s state) isADone() bool {
 	for j := range s.locations {
 		if isA(j) {
@@ -405,7 +406,7 @@ func (s state) isDDone() bool {
 }
 
 func (s state) canMove(i int, to int) bool {
-	if !isHall(s.locations[i]) && (to < s.locations[i]) {
+	if !isHall(s.locations[i]) {
 		return true
 	}
 	if s.prevMover != i {
@@ -423,26 +424,24 @@ func (s state) canMove(i int, to int) bool {
 		}
 	}
 	if isLocA(to) {
-		if isA(i) {
-			// check to see if any non-A is below it; if so, don't move down
-		}
-		return locMatchesPod(i, to) && s.isADone()
+		return isA(i) && s.isADone()
 	}
 	if isLocB(to) {
-		return locMatchesPod(i, to) && s.isBDone()
+		return isB(i) && s.isBDone()
 	}
 	if isLocC(to) {
-		return locMatchesPod(i, to) && s.isCDone()
+		return isC(i) && s.isCDone()
 	}
 	if isLocD(to) {
-		return locMatchesPod(i, to) && s.isDDone()
+		return isD(i) && s.isDDone()
 	}
 	if s.prevMover == i {
-		if s.locations[i] > to {
-			// moving to the left is only possible if previous direction was left
-			return s.prevDir < 0
-		}
-		return s.prevDir >= 0
+		return true
+		// if s.locations[i] > to {
+		// 	// moving to the left is only possible if previous direction was left
+		// 	return s.prevDir < 0
+		// }
+		// return s.prevDir >= 0
 	}
 	return false
 }
@@ -487,30 +486,25 @@ func (s state) direction(i int, to int) int {
 }
 
 func (s state) move(i int, loc int, dist int) *state {
-	if !s.canMove(i, loc) {
-		return nil
-	}
+	// if !s.canMove(i, loc) {
+	// 	return nil
+	// }
 	for j, pod := range s.locations {
 		if i != j && pod == loc {
 			return nil // someone else is already there!
 		}
 	}
 	s2 := &state{
-		locations: cp(s.locations),
+		locations: s.locations,
 		prevMover: i,
 		prevDir:   s.direction(i, loc),
 		costSoFar: s.costSoFar + dist*cost(i),
 	}
 	s2.locations[i] = loc
-	return s2 // return state where given pod moves to location
-}
-
-func cp(is [16]int) [16]int {
-	var js [16]int
-	for i := range is {
-		js[i] = is[i]
+	if isD(i) && isLocD(loc) {
+		fmt.Println("making state", s2)
 	}
-	return js
+	return s2 // return state where given pod moves to location
 }
 
 func (s state) possibleNexts() []*state {
