@@ -1,6 +1,7 @@
 package main
 
 import (
+	"container/heap"
 	"fmt"
 	"strings"
 )
@@ -16,8 +17,8 @@ import (
 // Cost 2 connections:
 // 7-1, 7-2, 1-2, 11-2, 11-3, 2-3, 15-3, 15-4, 3-4, 19-4, 19-5, 4-5
 
-func main() {
-	initial := state{
+var (
+	input = &state{
 		locations: [16]int{
 			7, 15, 17, 20, // A
 			13, 16, 18, 22, // B
@@ -25,42 +26,53 @@ func main() {
 			8, 9, 11, 14, // D
 		},
 	}
-	fmt.Println(initial)
-	p2, _ := initial.move(10, 5, 2)
-	fmt.Println(p2, p2.prevMover, p2.prevDir)
-	fmt.Println(p2.canMove(10, 4))
-	possibilities := map[state]int{initial: 0}
+	sample = &state{
+		locations: [16]int{
+			10, 17, 20, 22,
+			7, 13, 15, 16,
+			11, 12, 18, 21,
+			8, 9, 14, 19,
+		},
+	}
+)
+
+func main() {
+	// fmt.Println(initial)
+	// p2 := initial.move(10, 5, 2)
+	// fmt.Println(p2, p2.prevMover, p2.prevDir)
+	// fmt.Println(p2.canMove(10, 4))
+
+	sh := &stateHeap{[]*state{sample}}
+	heap.Init(sh)
+	i := 0
 	for {
-		newPoss := map[state]int{}
-		for state, cost := range possibilities {
-			next := state.possibleNext(cost)
-			for newState, newCost := range next {
-				if _, ok := newPoss[newState]; !ok {
-					newPoss[newState] = newCost
-				}
-				if newPoss[newState] > newCost {
-					newPoss[newState] = newCost
-				}
+		next := heap.Pop(sh).(*state).possibleNexts()
+		for _, s := range next {
+			if s.win() {
+				fmt.Println(s, s.costSoFar)
+				continue
 			}
+			heap.Push(sh, s)
 		}
-		for st, cost := range newPoss {
-			if st.win() {
-				fmt.Println(st, cost)
-			}
+		// fmt.Println("=====")
+		if i == 0 {
+			fmt.Println(len(sh.states))
 		}
-		possibilities = newPoss
-		fmt.Println("=====")
-		fmt.Println(len(possibilities))
-		// fmt.Println(possibilities)
-		i := 0
-		for p, cost := range possibilities {
-			if i > 3 {
-				break
-			}
-			i++
-			fmt.Println(cost, p)
-			fmt.Println("---")
+		i++
+		if i == 100000 {
+			i = 0
 		}
+		// fmt.Println(sh.states[0])
+		// // fmt.Println(possibilities)
+		// i := 0
+		// for p, cost := range possibilities {
+		// 	if i > 3 {
+		// 		break
+		// 	}
+		// 	i++
+		// 	fmt.Println(cost, p)
+		// 	fmt.Println("---")
+		// }
 	}
 }
 
@@ -69,6 +81,36 @@ type state struct {
 	locations [16]int
 	prevMover int
 	prevDir   int // -1 for leftward, 1 for rightward
+
+	costSoFar int
+}
+
+type stateHeap struct {
+	states []*state
+}
+
+func (sh *stateHeap) Len() int {
+	return len(sh.states)
+}
+
+func (sh *stateHeap) Less(i, j int) bool {
+	return sh.states[i].value()-sh.states[i].costSoFar < sh.states[j].value()-sh.states[j].costSoFar
+}
+
+func (sh *stateHeap) Swap(i, j int) {
+	tmp := sh.states[j]
+	sh.states[j] = sh.states[i]
+	sh.states[i] = tmp
+}
+
+func (sh *stateHeap) Push(x interface{}) {
+	sh.states = append(sh.states, x.(*state))
+}
+
+func (sh *stateHeap) Pop() interface{} {
+	tmp := sh.states[sh.Len()-1]
+	sh.states = sh.states[:sh.Len()-1]
+	return tmp
 }
 
 func replaceAtIndex(s string, i int, r rune) string {
@@ -243,15 +285,15 @@ func (s state) value() int {
 		value += aVal[s.locations[i]]
 	}
 	for i := 4; i < 8; i++ {
-		value += bVal[s.locations[i]]
+		value += 10 * bVal[s.locations[i]]
 	}
 	for i := 8; i < 12; i++ {
-		value += cVal[s.locations[i]]
+		value += 100 * cVal[s.locations[i]]
 	}
 	for i := 12; i < 16; i++ {
-		value += dVal[s.locations[i]]
+		value += 1000 * dVal[s.locations[i]]
 	}
-	return value
+	return -value
 }
 
 // cost for pod index i to move one square
@@ -321,28 +363,24 @@ func locMatchesPod(i int, loc int) bool {
 }
 
 func (s state) isADone() bool {
-	for j := 7; j < 11; j++ {
-		for j := range s.locations {
-			if isA(j) {
-				continue
-			}
-			if isLocA(s.locations[j]) {
-				return false
-			}
+	for j := range s.locations {
+		if isA(j) {
+			continue
+		}
+		if isLocA(s.locations[j]) {
+			return false
 		}
 	}
 	return true
 }
 
 func (s state) isBDone() bool {
-	for j := 11; j < 15; j++ {
-		for j := range s.locations {
-			if isB(j) {
-				continue
-			}
-			if isLocB(s.locations[j]) {
-				return false
-			}
+	for j := range s.locations {
+		if isB(j) {
+			continue
+		}
+		if isLocB(s.locations[j]) {
+			return false
 		}
 	}
 	return true
@@ -391,6 +429,9 @@ func (s state) canMove(i int, to int) bool {
 		}
 	}
 	if isLocA(to) {
+		if isA(i) {
+			// check to see if any non-A is below it; if so, don't move down
+		}
 		return locMatchesPod(i, to) && s.isADone()
 	}
 	if isLocB(to) {
@@ -451,22 +492,23 @@ func (s state) direction(i int, to int) int {
 	return 0 // should never get here
 }
 
-func (s state) move(i int, loc int, dist int) (*state, int) {
+func (s state) move(i int, loc int, dist int) *state {
 	if !s.canMove(i, loc) {
-		return nil, 0
+		return nil
 	}
 	for j, pod := range s.locations {
 		if i != j && pod == loc {
-			return nil, 0 // someone else is already there!
+			return nil // someone else is already there!
 		}
 	}
 	s2 := &state{
 		locations: cp(s.locations),
 		prevMover: i,
 		prevDir:   s.direction(i, loc),
+		costSoFar: s.costSoFar + dist*cost(i),
 	}
 	s2.locations[i] = loc
-	return s2, dist * cost(i) // return state where given pod moves to location
+	return s2 // return state where given pod moves to location
 }
 
 func cp(is [16]int) [16]int {
@@ -477,31 +519,19 @@ func cp(is [16]int) [16]int {
 	return js
 }
 
-func (s state) possibleNext(prevCost int) map[state]int {
-	next := map[state]int{}
+func (s state) possibleNexts() []*state {
+	var next []*state
 	for i, podLoc := range s.locations {
 		for _, neigh := range neighbors1[podLoc] {
-			mv, cost := s.move(i, neigh, 1)
-			cost += prevCost
+			mv := s.move(i, neigh, 1)
 			if mv != nil {
-				if _, ok := next[*mv]; !ok {
-					next[*mv] = cost
-				}
-				if next[*mv] > cost {
-					next[*mv] = cost
-				}
+				next = append(next, mv)
 			}
 		}
 		for _, neigh := range neighbors2[podLoc] {
-			mv, cost := s.move(i, neigh, 2)
-			cost += prevCost
+			mv := s.move(i, neigh, 2)
 			if mv != nil {
-				if _, ok := next[*mv]; !ok {
-					next[*mv] = cost
-				}
-				if next[*mv] > cost {
-					next[*mv] = cost
-				}
+				next = append(next, mv)
 			}
 		}
 	}
