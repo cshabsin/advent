@@ -78,8 +78,8 @@ func main() {
 type state struct {
 	// 0-3 a, 4-7 b, 8-11 c, 12-15 d
 	podLocations [16]Location
-	locContents  [23]int
-	prevMover    int
+	locContents  [23]Pod
+	prevMover    Pod
 	prevDir      int // -1 for leftward, 1 for rightward
 
 	costSoFar int
@@ -159,14 +159,15 @@ func (s state) String() string {
 		{5, 9},
 	}
 	for i, loc := range s.podLocations {
+		iPod := Pod(i)
 		var r rune
-		if isA(i) {
+		if iPod.isA() {
 			r = 'A'
-		} else if isB(i) {
+		} else if iPod.isB() {
 			r = 'B'
-		} else if isC(i) {
+		} else if iPod.isC() {
 			r = 'C'
-		} else if isD(i) {
+		} else if iPod.isD() {
 			r = 'D'
 		} else {
 			r = '?'
@@ -178,14 +179,14 @@ func (s state) String() string {
 
 func (s *state) initFromPods() *state {
 	for i, loc := range s.podLocations {
-		s.locContents[loc] = i
+		s.locContents[loc] = Pod(i)
 	}
 	return s
 }
 
 func (s state) win() bool {
 	for i, loc := range s.podLocations {
-		if !locMatchesPod(i, loc) {
+		if !locMatchesPod(Pod(i), loc) {
 			return false
 		}
 	}
@@ -307,33 +308,33 @@ func (s state) value() int {
 }
 
 // cost for pod index i to move one square
-func cost(i int) int {
-	if i < 4 {
+func (p Pod) cost() int {
+	if p < 4 {
 		return 1
 	}
-	if i < 8 {
+	if p < 8 {
 		return 10
 	}
-	if i < 12 {
+	if p < 12 {
 		return 100
 	}
 	return 1000
 }
 
-func isA(i int) bool {
-	return i >= 0 && i < 4
+func (p Pod) isA() bool {
+	return p >= 0 && p < 4
 }
 
-func isB(i int) bool {
-	return i >= 4 && i < 8
+func (p Pod) isB() bool {
+	return p >= 4 && p < 8
 }
 
-func isC(i int) bool {
-	return i >= 8 && i < 12
+func (p Pod) isC() bool {
+	return p >= 8 && p < 12
 }
 
-func isD(i int) bool {
-	return i >= 12 && i < 16
+func (p Pod) isD() bool {
+	return p >= 12 && p < 16
 }
 
 func (loc Location) isA() bool {
@@ -356,17 +357,17 @@ func (loc Location) isHall() bool {
 	return loc < 7
 }
 
-func locMatchesPod(i int, loc Location) bool {
-	if isA(i) && loc.isA() {
+func locMatchesPod(i Pod, loc Location) bool {
+	if i.isA() && loc.isA() {
 		return true
 	}
-	if isB(i) && loc.isB() {
+	if i.isB() && loc.isB() {
 		return true
 	}
-	if isC(i) && loc.isC() {
+	if i.isC() && loc.isC() {
 		return true
 	}
-	if isD(i) && loc.isD() {
+	if i.isD() && loc.isD() {
 		return true
 	}
 	return false
@@ -375,7 +376,7 @@ func locMatchesPod(i int, loc Location) bool {
 // return true if the only thing in the A column is A pods, i.e. the column is "done" enough for more A pods to move in
 func (s state) isADone() bool {
 	for j := range s.podLocations {
-		if isA(j) {
+		if Pod(j).isA() {
 			continue
 		}
 		if s.podLocations[j].isA() {
@@ -387,7 +388,7 @@ func (s state) isADone() bool {
 
 func (s state) isBDone() bool {
 	for j := range s.podLocations {
-		if isB(j) {
+		if Pod(j).isB() {
 			continue
 		}
 		if s.podLocations[j].isB() {
@@ -399,7 +400,7 @@ func (s state) isBDone() bool {
 
 func (s state) isCDone() bool {
 	for j := range s.podLocations {
-		if isC(j) {
+		if Pod(j).isC() {
 			continue
 		}
 		if s.podLocations[j].isC() {
@@ -411,7 +412,7 @@ func (s state) isCDone() bool {
 
 func (s state) isDDone() bool {
 	for j := range s.podLocations {
-		if isD(j) {
+		if Pod(j).isD() {
 			continue
 		}
 		if s.podLocations[j].isD() {
@@ -421,35 +422,35 @@ func (s state) isDDone() bool {
 	return true
 }
 
-func (s state) canMove(i int, to Location) bool {
+func (s state) canMove(i Pod, to Location) bool {
 	if !s.podLocations[i].isHall() {
 		return true
 	}
 	if s.prevMover != i {
-		if isA(i) && !s.isADone() {
+		if i.isA() && !s.isADone() {
 			return false
 		}
-		if isB(i) && !s.isBDone() {
+		if i.isB() && !s.isBDone() {
 			return false
 		}
-		if isC(i) && !s.isCDone() {
+		if i.isC() && !s.isCDone() {
 			return false
 		}
-		if isD(i) && !s.isDDone() {
+		if i.isD() && !s.isDDone() {
 			return false
 		}
 	}
 	if to.isA() {
-		return isA(i) && s.isADone()
+		return i.isA() && s.isADone()
 	}
 	if to.isB() {
-		return isB(i) && s.isBDone()
+		return i.isB() && s.isBDone()
 	}
 	if to.isC() {
-		return isC(i) && s.isCDone()
+		return i.isC() && s.isCDone()
 	}
 	if to.isD() {
-		return isD(i) && s.isDDone()
+		return i.isD() && s.isDDone()
 	}
 	if s.prevMover == i {
 		return true
@@ -462,7 +463,7 @@ func (s state) canMove(i int, to Location) bool {
 	return false
 }
 
-func (s state) direction(i int, to Location) int {
+func (s state) direction(i Pod, to Location) int {
 	if !to.isHall() {
 		return 0
 	}
@@ -501,12 +502,12 @@ func (s state) direction(i int, to Location) int {
 	return 0 // should never get here
 }
 
-func (s state) move(i int, loc Location, dist int) *state {
+func (s state) move(i Pod, loc Location, dist int) *state {
 	// if !s.canMove(i, loc) {
 	// 	return nil
 	// }
 	for j, pod := range s.podLocations {
-		if i != j && pod == loc {
+		if i != Pod(j) && pod == loc {
 			return nil // someone else is already there!
 		}
 	}
@@ -515,24 +516,25 @@ func (s state) move(i int, loc Location, dist int) *state {
 		locContents:  s.locContents,
 		prevMover:    i,
 		prevDir:      s.direction(i, loc),
-		costSoFar:    s.costSoFar + dist*cost(i),
+		costSoFar:    s.costSoFar + dist*i.cost(),
 	}
 	s2.podLocations[i] = loc
-	s.locContents[loc] = i
+	s.locContents[loc] = Pod(i)
 	return s2 // return state where given pod moves to location
 }
 
 func (s state) possibleNexts() []*state {
 	var next []*state
 	for i, podLoc := range s.podLocations {
+		iPod := Pod(i)
 		for _, neigh := range neighbors1[podLoc] {
-			mv := s.move(i, neigh, 1)
+			mv := s.move(iPod, neigh, 1)
 			if mv != nil {
 				next = append(next, mv)
 			}
 		}
 		for _, neigh := range neighbors2[podLoc] {
-			mv := s.move(i, neigh, 2)
+			mv := s.move(iPod, neigh, 2)
 			if mv != nil {
 				next = append(next, mv)
 			}
