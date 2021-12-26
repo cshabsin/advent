@@ -19,7 +19,7 @@ import (
 
 var (
 	input = &state{
-		locations: [16]int{
+		podLocations: [16]int{
 			7, 15, 17, 20, // A
 			13, 16, 18, 22, // B
 			10, 12, 19, 21, // C
@@ -27,7 +27,7 @@ var (
 		},
 	}
 	sample = &state{
-		locations: [16]int{
+		podLocations: [16]int{
 			10, 17, 20, 22,
 			7, 13, 15, 16,
 			11, 12, 18, 21,
@@ -37,7 +37,7 @@ var (
 )
 
 func main() {
-	sh := &stateHeap{[]*state{sample}}
+	sh := &stateHeap{[]*state{sample.initFromPods()}}
 	heap.Init(sh)
 	i := 0
 	visitedStates := map[[16]int]bool{}
@@ -54,10 +54,10 @@ func main() {
 		if i == 500000 {
 			i = 0
 		}
-		if visitedStates[nextState.locations] {
+		if visitedStates[nextState.podLocations] {
 			continue
 		}
-		visitedStates[nextState.locations] = true
+		visitedStates[nextState.podLocations] = true
 		next := nextState.possibleNexts()
 		for _, s := range next {
 			if s.win() {
@@ -65,16 +65,19 @@ func main() {
 				fmt.Println(s, "cost:", s.costSoFar)
 				return
 			}
-			heap.Push(sh, s)
+			if !visitedStates[s.podLocations] {
+				heap.Push(sh, s)
+			}
 		}
 	}
 }
 
 type state struct {
 	// 0-3 a, 4-7 b, 8-11 c, 12-15 d
-	locations [16]int
-	prevMover int
-	prevDir   int // -1 for leftward, 1 for rightward
+	podLocations [16]int
+	locContents  [23]int
+	prevMover    int
+	prevDir      int // -1 for leftward, 1 for rightward
 
 	costSoFar int
 }
@@ -105,6 +108,15 @@ func (sh *stateHeap) Pop() interface{} {
 	tmp := sh.states[sh.Len()-1]
 	sh.states = sh.states[:sh.Len()-1]
 	return tmp
+}
+
+func (sh stateHeap) find(locations [16]int) int {
+	for i, state := range sh.states {
+		if state.podLocations == locations {
+			return i
+		}
+	}
+	return -1
 }
 
 func replaceAtIndex(s string, i int, r rune) string {
@@ -152,7 +164,7 @@ func (s state) String() string {
 		{4, 9},
 		{5, 9},
 	}
-	for i, loc := range s.locations {
+	for i, loc := range s.podLocations {
 		var r rune
 		if isA(i) {
 			r = 'A'
@@ -170,8 +182,15 @@ func (s state) String() string {
 	return fmt.Sprintf("\n%d - %d:\n%s", s.value(), s.costSoFar, strings.Join(board, "\n"))
 }
 
+func (s *state) initFromPods() *state {
+	for i, loc := range s.podLocations {
+		s.locContents[loc] = i
+	}
+	return s
+}
+
 func (s state) win() bool {
-	for i, loc := range s.locations {
+	for i, loc := range s.podLocations {
 		if !locMatchesPod(i, loc) {
 			return false
 		}
@@ -243,7 +262,7 @@ var neighbors2 = [][]int{
 
 var aVal = []int{
 	2, 5, 5, 7, 9, 11, 8, // hall
-	-20, -30, -40, -50, // a
+	3, 2, 1, 0, // a
 	7, 8, 9, 10, // b
 	9, 10, 11, 12, // c
 	11, 12, 13, 14, // d
@@ -252,7 +271,7 @@ var aVal = []int{
 var bVal = []int{
 	4, 7, 5, 5, 7, 9, 6, // hall
 	7, 8, 9, 10, // a
-	-20, -30, -40, -50, // b
+	3, 2, 1, 0, // b
 	7, 8, 9, 10, // c
 	9, 10, 11, 12, // d
 }
@@ -261,7 +280,7 @@ var cVal = []int{
 	6, 9, 7, 5, 5, 7, 4, // hall
 	9, 10, 11, 12, // a
 	7, 8, 9, 10, // b
-	-20, -30, -40, -50, // c
+	3, 2, 1, 0, // c
 	7, 8, 9, 10, // d
 }
 
@@ -270,22 +289,25 @@ var dVal = []int{
 	11, 12, 13, 14, // a
 	9, 10, 11, 12, // b
 	7, 8, 9, 10, // c
-	-20, -30, -40, -50, // d
+	3, 2, 1, 0, // d
 }
 
 func (s state) value() int {
 	var value int
 	for i := 0; i < 4; i++ {
-		value += aVal[s.locations[i]]
+		value += aVal[s.podLocations[i]]
+		if isLocA(s.podLocations[i]) {
+			// TODO: make this only favor states where it's "home"
+		}
 	}
 	for i := 4; i < 8; i++ {
-		value += 10 * bVal[s.locations[i]]
+		value += 10 * bVal[s.podLocations[i]]
 	}
 	for i := 8; i < 12; i++ {
-		value += 100 * cVal[s.locations[i]]
+		value += 100 * cVal[s.podLocations[i]]
 	}
 	for i := 12; i < 16; i++ {
-		value += 1000 * dVal[s.locations[i]]
+		value += 1000 * dVal[s.podLocations[i]]
 	}
 	return value
 }
@@ -358,11 +380,11 @@ func locMatchesPod(i int, loc int) bool {
 
 // return true if the only thing in the A column is A pods, i.e. the column is "done" enough for more A pods to move in
 func (s state) isADone() bool {
-	for j := range s.locations {
+	for j := range s.podLocations {
 		if isA(j) {
 			continue
 		}
-		if isLocA(s.locations[j]) {
+		if isLocA(s.podLocations[j]) {
 			return false
 		}
 	}
@@ -370,11 +392,11 @@ func (s state) isADone() bool {
 }
 
 func (s state) isBDone() bool {
-	for j := range s.locations {
+	for j := range s.podLocations {
 		if isB(j) {
 			continue
 		}
-		if isLocB(s.locations[j]) {
+		if isLocB(s.podLocations[j]) {
 			return false
 		}
 	}
@@ -382,11 +404,11 @@ func (s state) isBDone() bool {
 }
 
 func (s state) isCDone() bool {
-	for j := range s.locations {
+	for j := range s.podLocations {
 		if isC(j) {
 			continue
 		}
-		if isLocC(s.locations[j]) {
+		if isLocC(s.podLocations[j]) {
 			return false
 		}
 	}
@@ -394,11 +416,11 @@ func (s state) isCDone() bool {
 }
 
 func (s state) isDDone() bool {
-	for j := range s.locations {
+	for j := range s.podLocations {
 		if isD(j) {
 			continue
 		}
-		if isLocD(s.locations[j]) {
+		if isLocD(s.podLocations[j]) {
 			return false
 		}
 	}
@@ -406,7 +428,7 @@ func (s state) isDDone() bool {
 }
 
 func (s state) canMove(i int, to int) bool {
-	if !isHall(s.locations[i]) {
+	if !isHall(s.podLocations[i]) {
 		return true
 	}
 	if s.prevMover != i {
@@ -450,7 +472,7 @@ func (s state) direction(i int, to int) int {
 	if !isHall(to) {
 		return 0
 	}
-	from := s.locations[i]
+	from := s.podLocations[i]
 	if isHall(from) {
 		if from < to {
 			return -1
@@ -489,27 +511,26 @@ func (s state) move(i int, loc int, dist int) *state {
 	// if !s.canMove(i, loc) {
 	// 	return nil
 	// }
-	for j, pod := range s.locations {
+	for j, pod := range s.podLocations {
 		if i != j && pod == loc {
 			return nil // someone else is already there!
 		}
 	}
 	s2 := &state{
-		locations: s.locations,
-		prevMover: i,
-		prevDir:   s.direction(i, loc),
-		costSoFar: s.costSoFar + dist*cost(i),
+		podLocations: s.podLocations,
+		locContents:  s.locContents,
+		prevMover:    i,
+		prevDir:      s.direction(i, loc),
+		costSoFar:    s.costSoFar + dist*cost(i),
 	}
-	s2.locations[i] = loc
-	if isD(i) && isLocD(loc) {
-		fmt.Println("making state", s2)
-	}
+	s2.podLocations[i] = loc
+	s.locContents[loc] = i
 	return s2 // return state where given pod moves to location
 }
 
 func (s state) possibleNexts() []*state {
 	var next []*state
-	for i, podLoc := range s.locations {
+	for i, podLoc := range s.podLocations {
 		for _, neigh := range neighbors1[podLoc] {
 			mv := s.move(i, neigh, 1)
 			if mv != nil {
