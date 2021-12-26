@@ -3,6 +3,7 @@ package main
 import (
 	"container/heap"
 	"fmt"
+	"log"
 	"strings"
 )
 
@@ -193,6 +194,234 @@ func (s state) win() bool {
 	return true
 }
 
+// cost for pod index i to move one square
+func (p Pod) cost() int {
+	if p < 4 {
+		return 1
+	}
+	if p < 8 {
+		return 10
+	}
+	if p < 12 {
+		return 100
+	}
+	return 1000
+}
+
+func (p Pod) isA() bool {
+	return p >= 0 && p < 4
+}
+
+func (p Pod) isB() bool {
+	return p >= 4 && p < 8
+}
+
+func (p Pod) isC() bool {
+	return p >= 8 && p < 12
+}
+
+func (p Pod) isD() bool {
+	return p >= 12 && p < 16
+}
+
+func (loc Location) isA() bool {
+	return loc >= 7 && loc <= 10
+}
+
+func (loc Location) isB() bool {
+	return loc >= 11 && loc <= 14
+}
+
+func (loc Location) isC() bool {
+	return loc >= 15 && loc <= 18
+}
+
+func (loc Location) isD() bool {
+	return loc >= 19 && loc <= 22
+}
+
+func (loc Location) isHall() bool {
+	return loc < 7
+}
+
+func locMatchesPod(i Pod, loc Location) bool {
+	if i.isA() && loc.isA() {
+		return true
+	}
+	if i.isB() && loc.isB() {
+		return true
+	}
+	if i.isC() && loc.isC() {
+		return true
+	}
+	if i.isD() && loc.isD() {
+		return true
+	}
+	return false
+}
+
+func (s state) isDone(loc Location) bool {
+	if loc.isA() {
+		return s.isADone()
+	}
+	if loc.isB() {
+		return s.isBDone()
+	}
+	if loc.isC() {
+		return s.isCDone()
+	}
+	if loc.isD() {
+		return s.isDDone()
+	}
+	log.Fatal("isDone called on ", loc)
+	return true
+}
+
+// return true if the only thing in the A column is A pods, i.e. the column is "done" enough for more A pods to move in
+func (s state) isADone() bool {
+	for j := range s.podLocations {
+		if Pod(j).isA() {
+			continue
+		}
+		if s.podLocations[j].isA() {
+			return false
+		}
+	}
+	return true
+}
+
+func (s state) isBDone() bool {
+	for j := range s.podLocations {
+		if Pod(j).isB() {
+			continue
+		}
+		if s.podLocations[j].isB() {
+			return false
+		}
+	}
+	return true
+}
+
+func (s state) isCDone() bool {
+	for j := range s.podLocations {
+		if Pod(j).isC() {
+			continue
+		}
+		if s.podLocations[j].isC() {
+			return false
+		}
+	}
+	return true
+}
+
+func (s state) isDDone() bool {
+	for j := range s.podLocations {
+		if Pod(j).isD() {
+			continue
+		}
+		if s.podLocations[j].isD() {
+			return false
+		}
+	}
+	return true
+}
+
+func dbg(x ...interface{}) {
+	fmt.Println(x...)
+}
+
+func (s state) canMove(i Pod, to Location) bool {
+	from := s.podLocations[i]
+	if !from.isHall() {
+		// only move out to the hall if leaving a column that's not done
+		if to.isHall() {
+			return !s.isDone(from)
+		}
+		// if the column is done, only allow moves further in.
+		if s.isDone(to) {
+			return to > from
+		}
+		// column isn't done, only allow moves out.
+		if to < from {
+			return true
+		}
+	}
+	if s.prevMover != i {
+		if i.isA() && !s.isADone() {
+			return false
+		}
+		if i.isB() && !s.isBDone() {
+			return false
+		}
+		if i.isC() && !s.isCDone() {
+			return false
+		}
+		if i.isD() && !s.isDDone() {
+			return false
+		}
+	}
+	if to.isA() {
+		return i.isA() && s.isADone()
+	}
+	if to.isB() {
+		return i.isB() && s.isBDone()
+	}
+	if to.isC() {
+		return i.isC() && s.isCDone()
+	}
+	if to.isD() {
+		return i.isD() && s.isDDone()
+	}
+	if s.prevMover == i {
+		return true
+		// if s.locations[i] > to {
+		// 	// moving to the left is only possible if previous direction was left
+		// 	return s.prevDir < 0
+		// }
+		// return s.prevDir >= 0
+	}
+	return false
+}
+
+func (s state) direction(i Pod, to Location) int {
+	if !to.isHall() {
+		return 0
+	}
+	from := s.podLocations[i]
+	if from.isHall() {
+		if from < to {
+			return -1
+		} else {
+			return 1
+		}
+	}
+	if from.isA() {
+		if to == 1 {
+			return -1
+		}
+		return 1
+	}
+	if from.isB() {
+		if to == 2 {
+			return -1
+		}
+		return 1
+	}
+	if from.isC() {
+		if to == 3 {
+			return -1
+		}
+		return 1
+	}
+	if from.isD() {
+		if to == 4 {
+			return -1
+		}
+		return 1
+	}
+	return 0 // should never get here
+}
+
 // neighbor links of distance 1
 var neighbors1 = [][]Location{
 	{1}, // hall: 0
@@ -306,206 +535,10 @@ func (s state) value() int {
 	}
 	return value
 }
-
-// cost for pod index i to move one square
-func (p Pod) cost() int {
-	if p < 4 {
-		return 1
-	}
-	if p < 8 {
-		return 10
-	}
-	if p < 12 {
-		return 100
-	}
-	return 1000
-}
-
-func (p Pod) isA() bool {
-	return p >= 0 && p < 4
-}
-
-func (p Pod) isB() bool {
-	return p >= 4 && p < 8
-}
-
-func (p Pod) isC() bool {
-	return p >= 8 && p < 12
-}
-
-func (p Pod) isD() bool {
-	return p >= 12 && p < 16
-}
-
-func (loc Location) isA() bool {
-	return loc >= 7 && loc <= 10
-}
-
-func (loc Location) isB() bool {
-	return loc >= 11 && loc <= 14
-}
-
-func (loc Location) isC() bool {
-	return loc >= 15 && loc <= 18
-}
-
-func (loc Location) isD() bool {
-	return loc >= 19 && loc <= 22
-}
-
-func (loc Location) isHall() bool {
-	return loc < 7
-}
-
-func locMatchesPod(i Pod, loc Location) bool {
-	if i.isA() && loc.isA() {
-		return true
-	}
-	if i.isB() && loc.isB() {
-		return true
-	}
-	if i.isC() && loc.isC() {
-		return true
-	}
-	if i.isD() && loc.isD() {
-		return true
-	}
-	return false
-}
-
-// return true if the only thing in the A column is A pods, i.e. the column is "done" enough for more A pods to move in
-func (s state) isADone() bool {
-	for j := range s.podLocations {
-		if Pod(j).isA() {
-			continue
-		}
-		if s.podLocations[j].isA() {
-			return false
-		}
-	}
-	return true
-}
-
-func (s state) isBDone() bool {
-	for j := range s.podLocations {
-		if Pod(j).isB() {
-			continue
-		}
-		if s.podLocations[j].isB() {
-			return false
-		}
-	}
-	return true
-}
-
-func (s state) isCDone() bool {
-	for j := range s.podLocations {
-		if Pod(j).isC() {
-			continue
-		}
-		if s.podLocations[j].isC() {
-			return false
-		}
-	}
-	return true
-}
-
-func (s state) isDDone() bool {
-	for j := range s.podLocations {
-		if Pod(j).isD() {
-			continue
-		}
-		if s.podLocations[j].isD() {
-			return false
-		}
-	}
-	return true
-}
-
-func (s state) canMove(i Pod, to Location) bool {
-	if !s.podLocations[i].isHall() {
-		return true
-	}
-	if s.prevMover != i {
-		if i.isA() && !s.isADone() {
-			return false
-		}
-		if i.isB() && !s.isBDone() {
-			return false
-		}
-		if i.isC() && !s.isCDone() {
-			return false
-		}
-		if i.isD() && !s.isDDone() {
-			return false
-		}
-	}
-	if to.isA() {
-		return i.isA() && s.isADone()
-	}
-	if to.isB() {
-		return i.isB() && s.isBDone()
-	}
-	if to.isC() {
-		return i.isC() && s.isCDone()
-	}
-	if to.isD() {
-		return i.isD() && s.isDDone()
-	}
-	if s.prevMover == i {
-		return true
-		// if s.locations[i] > to {
-		// 	// moving to the left is only possible if previous direction was left
-		// 	return s.prevDir < 0
-		// }
-		// return s.prevDir >= 0
-	}
-	return false
-}
-
-func (s state) direction(i Pod, to Location) int {
-	if !to.isHall() {
-		return 0
-	}
-	from := s.podLocations[i]
-	if from.isHall() {
-		if from < to {
-			return -1
-		} else {
-			return 1
-		}
-	}
-	if from.isA() {
-		if to == 1 {
-			return -1
-		}
-		return 1
-	}
-	if from.isB() {
-		if to == 2 {
-			return -1
-		}
-		return 1
-	}
-	if from.isC() {
-		if to == 3 {
-			return -1
-		}
-		return 1
-	}
-	if from.isD() {
-		if to == 4 {
-			return -1
-		}
-		return 1
-	}
-	return 0 // should never get here
-}
-
 func (s state) move(i Pod, loc Location, dist int) *state {
-	// if !s.canMove(i, loc) {
-	// 	return nil
-	// }
+	if !s.canMove(i, loc) {
+		return nil
+	}
 	for j, pod := range s.podLocations {
 		if i != Pod(j) && pod == loc {
 			return nil // someone else is already there!
