@@ -37,42 +37,36 @@ var (
 )
 
 func main() {
-	// fmt.Println(initial)
-	// p2 := initial.move(10, 5, 2)
-	// fmt.Println(p2, p2.prevMover, p2.prevDir)
-	// fmt.Println(p2.canMove(10, 4))
-
 	sh := &stateHeap{[]*state{sample}}
 	heap.Init(sh)
 	i := 0
+	visitedStates := map[[16]int]bool{}
 	for {
-		next := heap.Pop(sh).(*state).possibleNexts()
+		if len(sh.states) == 0 {
+			fmt.Println("out of states!")
+			break
+		}
+		nextState := heap.Pop(sh).(*state)
+		if i == 0 {
+			fmt.Println("====== Processing:", nextState, "(", len(sh.states), ")")
+		}
+		if visitedStates[nextState.locations] {
+			continue
+		}
+		visitedStates[nextState.locations] = true
+		next := nextState.possibleNexts()
 		for _, s := range next {
 			if s.win() {
-				fmt.Println(s, s.costSoFar)
+				fmt.Println("win!")
+				fmt.Println(s, "cost:", s.costSoFar)
 				continue
 			}
 			heap.Push(sh, s)
-		}
-		// fmt.Println("=====")
-		if i == 0 {
-			fmt.Println(len(sh.states))
 		}
 		i++
 		if i == 100000 {
 			i = 0
 		}
-		// fmt.Println(sh.states[0])
-		// // fmt.Println(possibilities)
-		// i := 0
-		// for p, cost := range possibilities {
-		// 	if i > 3 {
-		// 		break
-		// 	}
-		// 	i++
-		// 	fmt.Println(cost, p)
-		// 	fmt.Println("---")
-		// }
 	}
 }
 
@@ -94,7 +88,7 @@ func (sh *stateHeap) Len() int {
 }
 
 func (sh *stateHeap) Less(i, j int) bool {
-	return sh.states[i].value()-sh.states[i].costSoFar < sh.states[j].value()-sh.states[j].costSoFar
+	return sh.states[i].value()+sh.states[i].costSoFar < sh.states[j].value()+sh.states[j].costSoFar
 }
 
 func (sh *stateHeap) Swap(i, j int) {
@@ -173,7 +167,7 @@ func (s state) String() string {
 		}
 		board[locations[loc][0]] = replaceAtIndex(board[locations[loc][0]], locations[loc][1], r)
 	}
-	return fmt.Sprintf("%d:\n%s", s.value(), strings.Join(board, "\n"))
+	return fmt.Sprintf("\n%d - %d:\n%s", s.value(), s.costSoFar, strings.Join(board, "\n"))
 }
 
 func (s state) win() bool {
@@ -248,7 +242,7 @@ var neighbors2 = [][]int{
 }
 
 var aVal = []int{
-	6, 5, 5, 7, 9, 11, 12, // hall
+	2, 5, 5, 7, 9, 11, 8, // hall
 	3, 2, 1, 0, // a
 	7, 8, 9, 10, // b
 	9, 10, 11, 12, // c
@@ -256,7 +250,7 @@ var aVal = []int{
 }
 
 var bVal = []int{
-	8, 7, 5, 5, 7, 9, 10, // hall
+	4, 7, 5, 5, 7, 9, 6, // hall
 	7, 8, 9, 10, // a
 	3, 2, 1, 0, // b
 	7, 8, 9, 10, // c
@@ -264,7 +258,7 @@ var bVal = []int{
 }
 
 var cVal = []int{
-	10, 9, 7, 5, 5, 7, 8, // hall
+	6, 9, 7, 5, 5, 7, 4, // hall
 	9, 10, 11, 12, // a
 	7, 8, 9, 10, // b
 	3, 2, 1, 0, // c
@@ -272,7 +266,7 @@ var cVal = []int{
 }
 
 var dVal = []int{
-	12, 11, 9, 7, 5, 5, 6, // hall
+	8, 11, 9, 7, 5, 5, 2, // hall
 	11, 12, 13, 14, // a
 	9, 10, 11, 12, // b
 	7, 8, 9, 10, // c
@@ -285,15 +279,15 @@ func (s state) value() int {
 		value += aVal[s.locations[i]]
 	}
 	for i := 4; i < 8; i++ {
-		value += 10 * bVal[s.locations[i]]
+		value += 5 * bVal[s.locations[i]]
 	}
 	for i := 8; i < 12; i++ {
-		value += 100 * cVal[s.locations[i]]
+		value += 25 * cVal[s.locations[i]]
 	}
 	for i := 12; i < 16; i++ {
-		value += 1000 * dVal[s.locations[i]]
+		value += 125 * dVal[s.locations[i]]
 	}
-	return -value
+	return value
 }
 
 // cost for pod index i to move one square
