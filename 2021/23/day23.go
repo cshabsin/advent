@@ -19,7 +19,7 @@ import (
 
 var (
 	input = &state{
-		podLocations: [16]int{
+		podLocations: [16]Location{
 			7, 15, 17, 20, // A
 			13, 16, 18, 22, // B
 			10, 12, 19, 21, // C
@@ -27,7 +27,7 @@ var (
 		},
 	}
 	sample = &state{
-		podLocations: [16]int{
+		podLocations: [16]Location{
 			10, 17, 20, 22,
 			7, 13, 15, 16,
 			11, 12, 18, 21,
@@ -36,11 +36,14 @@ var (
 	}
 )
 
+type Location int
+type Pod int
+
 func main() {
 	sh := &stateHeap{[]*state{sample.initFromPods()}}
 	heap.Init(sh)
 	i := 0
-	visitedStates := map[[16]int]bool{}
+	visitedStates := map[[16]Location]bool{}
 	for {
 		if len(sh.states) == 0 {
 			fmt.Println("out of states!")
@@ -74,7 +77,7 @@ func main() {
 
 type state struct {
 	// 0-3 a, 4-7 b, 8-11 c, 12-15 d
-	podLocations [16]int
+	podLocations [16]Location
 	locContents  [23]int
 	prevMover    int
 	prevDir      int // -1 for leftward, 1 for rightward
@@ -108,15 +111,6 @@ func (sh *stateHeap) Pop() interface{} {
 	tmp := sh.states[sh.Len()-1]
 	sh.states = sh.states[:sh.Len()-1]
 	return tmp
-}
-
-func (sh stateHeap) find(locations [16]int) int {
-	for i, state := range sh.states {
-		if state.podLocations == locations {
-			return i
-		}
-	}
-	return -1
 }
 
 func replaceAtIndex(s string, i int, r rune) string {
@@ -199,7 +193,7 @@ func (s state) win() bool {
 }
 
 // neighbor links of distance 1
-var neighbors1 = [][]int{
+var neighbors1 = [][]Location{
 	{1}, // hall: 0
 	{},  // 1
 	{},  // 2
@@ -230,7 +224,7 @@ var neighbors1 = [][]int{
 }
 
 // neighbor links of distance 2
-var neighbors2 = [][]int{
+var neighbors2 = [][]Location{
 	{},             // hall: 0
 	{2, 7},         // 1
 	{1, 3, 7, 11},  // 2
@@ -296,7 +290,7 @@ func (s state) value() int {
 	var value int
 	for i := 0; i < 4; i++ {
 		value += aVal[s.podLocations[i]]
-		if isLocA(s.podLocations[i]) {
+		if s.podLocations[i].isA() {
 			// TODO: make this only favor states where it's "home"
 		}
 	}
@@ -342,37 +336,37 @@ func isD(i int) bool {
 	return i >= 12 && i < 16
 }
 
-func isLocA(loc int) bool {
+func (loc Location) isA() bool {
 	return loc >= 7 && loc <= 10
 }
 
-func isLocB(loc int) bool {
+func (loc Location) isB() bool {
 	return loc >= 11 && loc <= 14
 }
 
-func isLocC(loc int) bool {
+func (loc Location) isC() bool {
 	return loc >= 15 && loc <= 18
 }
 
-func isLocD(loc int) bool {
+func (loc Location) isD() bool {
 	return loc >= 19 && loc <= 22
 }
 
-func isHall(loc int) bool {
+func (loc Location) isHall() bool {
 	return loc < 7
 }
 
-func locMatchesPod(i int, loc int) bool {
-	if isA(i) && isLocA(loc) {
+func locMatchesPod(i int, loc Location) bool {
+	if isA(i) && loc.isA() {
 		return true
 	}
-	if isB(i) && isLocB(loc) {
+	if isB(i) && loc.isB() {
 		return true
 	}
-	if isC(i) && isLocC(loc) {
+	if isC(i) && loc.isC() {
 		return true
 	}
-	if isD(i) && isLocD(loc) {
+	if isD(i) && loc.isD() {
 		return true
 	}
 	return false
@@ -384,7 +378,7 @@ func (s state) isADone() bool {
 		if isA(j) {
 			continue
 		}
-		if isLocA(s.podLocations[j]) {
+		if s.podLocations[j].isA() {
 			return false
 		}
 	}
@@ -396,7 +390,7 @@ func (s state) isBDone() bool {
 		if isB(j) {
 			continue
 		}
-		if isLocB(s.podLocations[j]) {
+		if s.podLocations[j].isB() {
 			return false
 		}
 	}
@@ -408,7 +402,7 @@ func (s state) isCDone() bool {
 		if isC(j) {
 			continue
 		}
-		if isLocC(s.podLocations[j]) {
+		if s.podLocations[j].isC() {
 			return false
 		}
 	}
@@ -420,15 +414,15 @@ func (s state) isDDone() bool {
 		if isD(j) {
 			continue
 		}
-		if isLocD(s.podLocations[j]) {
+		if s.podLocations[j].isD() {
 			return false
 		}
 	}
 	return true
 }
 
-func (s state) canMove(i int, to int) bool {
-	if !isHall(s.podLocations[i]) {
+func (s state) canMove(i int, to Location) bool {
+	if !s.podLocations[i].isHall() {
 		return true
 	}
 	if s.prevMover != i {
@@ -445,16 +439,16 @@ func (s state) canMove(i int, to int) bool {
 			return false
 		}
 	}
-	if isLocA(to) {
+	if to.isA() {
 		return isA(i) && s.isADone()
 	}
-	if isLocB(to) {
+	if to.isB() {
 		return isB(i) && s.isBDone()
 	}
-	if isLocC(to) {
+	if to.isC() {
 		return isC(i) && s.isCDone()
 	}
-	if isLocD(to) {
+	if to.isD() {
 		return isD(i) && s.isDDone()
 	}
 	if s.prevMover == i {
@@ -468,37 +462,37 @@ func (s state) canMove(i int, to int) bool {
 	return false
 }
 
-func (s state) direction(i int, to int) int {
-	if !isHall(to) {
+func (s state) direction(i int, to Location) int {
+	if !to.isHall() {
 		return 0
 	}
 	from := s.podLocations[i]
-	if isHall(from) {
+	if from.isHall() {
 		if from < to {
 			return -1
 		} else {
 			return 1
 		}
 	}
-	if isLocA(from) {
+	if from.isA() {
 		if to == 1 {
 			return -1
 		}
 		return 1
 	}
-	if isLocB(from) {
+	if from.isB() {
 		if to == 2 {
 			return -1
 		}
 		return 1
 	}
-	if isLocC(from) {
+	if from.isC() {
 		if to == 3 {
 			return -1
 		}
 		return 1
 	}
-	if isLocD(from) {
+	if from.isD() {
 		if to == 4 {
 			return -1
 		}
@@ -507,7 +501,7 @@ func (s state) direction(i int, to int) int {
 	return 0 // should never get here
 }
 
-func (s state) move(i int, loc int, dist int) *state {
+func (s state) move(i int, loc Location, dist int) *state {
 	// if !s.canMove(i, loc) {
 	// 	return nil
 	// }
