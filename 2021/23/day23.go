@@ -36,8 +36,8 @@ var (
 	}
 )
 
-type Location int
-type Pod int
+type Location byte
+type Pod byte
 
 func main() {
 	sh := &stateHeap{[]*state{sample.initFromPods()}}
