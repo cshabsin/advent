@@ -427,55 +427,33 @@ func dbg(x ...interface{}) {
 
 func (s state) canMove(i Pod, to Location) bool {
 	from := s.podLocations[i]
-	if !from.isHall() {
-		// only move out to the hall if leaving a column that's not done
-		if to.isHall() {
-			return !s.isDone(from)
+	if from.isHall() && to.isHall() {
+		if s.prevMover == i {
+			if to < from {
+				// moving to the left is only possible if previous direction was left
+				return s.prevDir < 0
+			}
+			return s.prevDir >= 0
 		}
-		// if the column is done, only allow moves further in.
-		if s.isDone(to) {
-			return to > from
-		}
-		// column isn't done, only allow moves out.
-		if to < from {
-			return true
-		}
-	}
-	if s.prevMover != i {
-		if i.isA() && !s.isADone() {
-			return false
-		}
-		if i.isB() && !s.isBDone() {
-			return false
-		}
-		if i.isC() && !s.isCDone() {
-			return false
-		}
-		if i.isD() && !s.isDDone() {
-			return false
-		}
-	}
-	if to.isA() {
-		return i.isA() && s.isADone()
-	}
-	if to.isB() {
-		return i.isB() && s.isBDone()
-	}
-	if to.isC() {
-		return i.isC() && s.isCDone()
-	}
-	if to.isD() {
-		return i.isD() && s.isDDone()
-	}
-	if s.prevMover == i {
 		return true
-		// if s.locations[i] > to {
-		// 	// moving to the left is only possible if previous direction was left
-		// 	return s.prevDir < 0
-		// }
-		// return s.prevDir >= 0
 	}
-	return false
+	if from.isHall() {
+		if !locMatchesPod(i, to) {
+			return false // mismatched pod can never enter
+		}
+		return s.isDone(to) // only enter if the location is done.
+	}
+	// only move out to the hall if leaving a column that's not done
+	if to.isHall() {
+		return !s.isDone(from)
+	}
+
+	// if the column is done, only allow moves further in.
+	if s.isDone(to) {
+		return to > from
+	}
+	// column isn't done, only allow moves out.
+	return to < from
 }
 
 func (s state) direction(i Pod, to Location) int {
@@ -484,7 +462,7 @@ func (s state) direction(i Pod, to Location) int {
 	}
 	from := s.podLocations[i]
 	if from.isHall() {
-		if from < to {
+		if to < from {
 			return -1
 		} else {
 			return 1
