@@ -41,10 +41,12 @@ type Location byte
 type Pod byte
 
 func main() {
-	sh := &stateHeap{[]*state{input.initFromPods()}}
+	sh := &stateHeap{[]*state{sample.initFromPods()}}
 	heap.Init(sh)
 	i := 0
 	visitedStates := map[[16]Location]bool{}
+	var minWin *state
+	var winningStates []*state
 	for {
 		if len(sh.states) == 0 {
 			fmt.Println("out of states!")
@@ -69,13 +71,22 @@ func main() {
 				fmt.Println("win!")
 				fmt.Println(s, "cost:", s.costSoFar)
 				fmt.Println(s.moves)
-				return
+				winningStates = append(winningStates, s)
+				if minWin == nil || s.costSoFar < minWin.costSoFar {
+					minWin = s
+				}
+				if s.costSoFar > minWin.costSoFar+1500 {
+					break
+				}
+				continue
 			}
 			if !visitedStates[s.podLocations] {
 				heap.Push(sh, s)
 			}
 		}
 	}
+	fmt.Println(winningStates)
+	fmt.Println("minimum win:", minWin)
 }
 
 type move struct {
