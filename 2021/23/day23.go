@@ -79,7 +79,7 @@ func main() {
 type state struct {
 	// 0-3 a, 4-7 b, 8-11 c, 12-15 d
 	podLocations [16]Location
-	locContents  [23]Pod
+	locContents  [23]*Pod
 	prevMover    Pod
 	prevDir      int // -1 for leftward, 1 for rightward
 
@@ -180,7 +180,8 @@ func (s state) String() string {
 
 func (s *state) initFromPods() *state {
 	for i, loc := range s.podLocations {
-		s.locContents[loc] = Pod(i)
+		p := Pod(i)
+		s.locContents[loc] = &p
 	}
 	return s
 }
@@ -516,22 +517,79 @@ func (s state) direction(i Pod, to Location) int {
 	return 0 // should never get here
 }
 
-func (s state) value() int {
-	var value int
-	for i := 0; i < 4; i++ {
-		value += aVal[s.podLocations[i]]
-		if s.podLocations[i].isA() {
-			// TODO: make this only favor states where it's "home"
+func (s state) isAHome(i Pod) bool {
+	if !s.podLocations[i].isA() {
+		return false
+	}
+	for loc := s.podLocations[i]; loc <= 10; loc++ {
+		if s.locContents[loc] != nil && !s.locContents[loc].isA() {
+			return false
 		}
 	}
-	for i := 4; i < 8; i++ {
+	return true
+}
+
+func (s state) isBHome(i Pod) bool {
+	if !s.podLocations[i].isB() {
+		return false
+	}
+	for loc := s.podLocations[i]; loc <= 14; loc++ {
+		if s.locContents[loc] != nil && !s.locContents[loc].isB() {
+			return false
+		}
+	}
+	return true
+}
+
+func (s state) isCHome(i Pod) bool {
+	if !s.podLocations[i].isC() {
+		return false
+	}
+	for loc := s.podLocations[i]; loc <= 18; loc++ {
+		if s.locContents[loc] != nil && !s.locContents[loc].isC() {
+			return false
+		}
+	}
+	return true
+}
+
+func (s state) isDHome(i Pod) bool {
+	if !s.podLocations[i].isD() {
+		return false
+	}
+	for loc := s.podLocations[i]; loc <= 22; loc++ {
+		if s.locContents[loc] != nil && !s.locContents[loc].isD() {
+			return false
+		}
+	}
+	return true
+}
+
+func (s state) value() int {
+	var value int
+	for i := Pod(0); i < 4; i++ {
+		value += aVal[s.podLocations[i]]
+		if s.isAHome(i) {
+			value -= 100
+		}
+	}
+	for i := Pod(4); i < 8; i++ {
 		value += 10 * bVal[s.podLocations[i]]
+		if s.isBHome(i) {
+			value -= 100
+		}
 	}
-	for i := 8; i < 12; i++ {
+	for i := Pod(8); i < 12; i++ {
 		value += 100 * cVal[s.podLocations[i]]
+		if s.isCHome(i) {
+			value -= 100
+		}
 	}
-	for i := 12; i < 16; i++ {
+	for i := Pod(12); i < 16; i++ {
 		value += 1000 * dVal[s.podLocations[i]]
+		if s.isDHome(i) {
+			value -= 100
+		}
 	}
 	return value
 }
@@ -551,8 +609,10 @@ func (s state) move(i Pod, loc Location, dist int) *state {
 		prevDir:      s.direction(i, loc),
 		costSoFar:    s.costSoFar + dist*i.cost(),
 	}
+	from := s.podLocations[i]
 	s2.podLocations[i] = loc
-	s.locContents[loc] = Pod(i)
+	s2.locContents[from] = nil
+	s2.locContents[loc] = &i
 	return s2 // return state where given pod moves to location
 }
 
