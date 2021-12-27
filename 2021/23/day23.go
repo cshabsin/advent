@@ -75,7 +75,7 @@ func main() {
 				if minWin == nil || s.costSoFar < minWin.costSoFar {
 					minWin = s
 				}
-				if s.costSoFar > minWin.costSoFar+1500 {
+				if s.costSoFar > minWin.costSoFar+50000 {
 					break
 				}
 				continue
@@ -87,6 +87,7 @@ func main() {
 	}
 	fmt.Println(winningStates)
 	fmt.Println("minimum win:", minWin)
+	fmt.Println(minWin.moves)
 }
 
 type move struct {
