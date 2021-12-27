@@ -45,8 +45,8 @@ func main() {
 	heap.Init(sh)
 	i := 0
 	visitedStates := map[[16]Location]bool{}
-	var minWin *state
-	var winningStates []*state
+	// var minWin *state
+	// var winningStates []*state
 	for {
 		if len(sh.states) == 0 {
 			fmt.Println("out of states!")
@@ -71,23 +71,24 @@ func main() {
 				fmt.Println("win!")
 				fmt.Println(s, "cost:", s.costSoFar)
 				fmt.Println(s.moves)
-				winningStates = append(winningStates, s)
-				if minWin == nil || s.costSoFar < minWin.costSoFar {
-					minWin = s
-				}
-				if s.costSoFar > minWin.costSoFar+50000 {
-					break
-				}
-				continue
+				// winningStates = append(winningStates, s)
+				// if minWin == nil || s.costSoFar < minWin.costSoFar {
+				// 	minWin = s
+				// }
+				// if s.costSoFar > minWin.costSoFar+50000 {
+				// 	break
+				// }
+				// continue
+				break
 			}
 			if !visitedStates[s.podLocations] {
 				heap.Push(sh, s)
 			}
 		}
 	}
-	fmt.Println(winningStates)
-	fmt.Println("minimum win:", minWin)
-	fmt.Println(minWin.moves)
+	// fmt.Println(winningStates)
+	// fmt.Println("minimum win:", minWin)
+	// fmt.Println(minWin.moves)
 }
 
 type move struct {
@@ -285,7 +286,7 @@ func locMatchesPod(i Pod, loc Location) bool {
 // neighbor links of distance 1
 var neighbors1 = [][]Location{
 	{1}, // hall: 0
-	{},  // 1
+	{0}, // 1
 	{},  // 2
 	{},  // 3
 	{},  // 4
