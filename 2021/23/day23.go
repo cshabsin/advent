@@ -41,7 +41,7 @@ type Location byte
 type Pod byte
 
 func main() {
-	sh := &stateHeap{[]*state{sample.initFromPods()}}
+	sh := &stateHeap{[]*state{input.initFromPods()}}
 	heap.Init(sh)
 	i := 0
 	visitedStates := map[[16]Location]bool{}
@@ -563,34 +563,41 @@ func (s state) isDHome(i Pod) bool {
 }
 
 func (s state) value() int {
-	var value int
-	for i := Pod(0); i < 4; i++ {
-		value += aVal[s.podLocations[i]]
-		if s.isAHome(i) {
-			value -= 100
-		}
-	}
-	for i := Pod(4); i < 8; i++ {
-		value += 10 * bVal[s.podLocations[i]]
-		if s.isBHome(i) {
-			value -= 100
-		}
-	}
-	for i := Pod(8); i < 12; i++ {
-		value += 100 * cVal[s.podLocations[i]]
-		if s.isCHome(i) {
-			value -= 100
-		}
-	}
-	for i := Pod(12); i < 16; i++ {
-		value += 1000 * dVal[s.podLocations[i]]
-		if s.isDHome(i) {
-			value -= 100
-		}
-	}
-	return value
+	return 0
+	// var value int
+	// for i := Pod(0); i < 4; i++ {
+	// 	value += aVal[s.podLocations[i]]
+	// 	if s.isAHome(i) {
+	// 		value -= 100
+	// 	}
+	// }
+	// for i := Pod(4); i < 8; i++ {
+	// 	value += 10 * bVal[s.podLocations[i]]
+	// 	if s.isBHome(i) {
+	// 		value -= 100
+	// 	}
+	// }
+	// for i := Pod(8); i < 12; i++ {
+	// 	value += 100 * cVal[s.podLocations[i]]
+	// 	if s.isCHome(i) {
+	// 		value -= 100
+	// 	}
+	// }
+	// for i := Pod(12); i < 16; i++ {
+	// 	value += 1000 * dVal[s.podLocations[i]]
+	// 	if s.isDHome(i) {
+	// 		value -= 100
+	// 	}
+	// }
+	// return value
 }
-func (s state) move(i Pod, loc Location, dist int) *state {
+
+func (s state) move(i Pod, loc Location) *state {
+	dist := 1
+	from := s.podLocations[i]
+	if from != 0 && from != 6 && loc != 0 && loc != 6 && (loc.isHall() || from.isHall()) {
+		dist = 2
+	}
 	if !s.canMove(i, loc) {
 		return nil
 	}
@@ -605,9 +612,8 @@ func (s state) move(i Pod, loc Location, dist int) *state {
 		prevMover:    i,
 		prevDir:      s.direction(i, loc),
 		costSoFar:    s.costSoFar + dist*i.cost(),
-		moves:        append(s.moves, move{i, loc}),
+		moves:        append([]move{{i, loc}}, s.moves...),
 	}
-	from := s.podLocations[i]
 	s2.podLocations[i] = loc
 	s2.locContents[from] = nil
 	s2.locContents[loc] = &i
@@ -619,13 +625,13 @@ func (s state) possibleNexts() []*state {
 	for i, podLoc := range s.podLocations {
 		iPod := Pod(i)
 		for _, neigh := range neighbors1[podLoc] {
-			mv := s.move(iPod, neigh, 1)
+			mv := s.move(iPod, neigh)
 			if mv != nil {
 				next = append(next, mv)
 			}
 		}
 		for _, neigh := range neighbors2[podLoc] {
-			mv := s.move(iPod, neigh, 2)
+			mv := s.move(iPod, neigh)
 			if mv != nil {
 				next = append(next, mv)
 			}
