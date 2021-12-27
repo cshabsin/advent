@@ -53,6 +53,7 @@ func main() {
 		nextState := heap.Pop(sh).(*state)
 		if i == 0 {
 			fmt.Println("====== Processing:", nextState, "(", len(sh.states), ")")
+			fmt.Println(nextState.moves)
 		}
 		i++
 		if i == 500000 {
@@ -67,6 +68,7 @@ func main() {
 			if s.win() {
 				fmt.Println("win!")
 				fmt.Println(s, "cost:", s.costSoFar)
+				fmt.Println(s.moves)
 				return
 			}
 			if !visitedStates[s.podLocations] {
@@ -74,6 +76,11 @@ func main() {
 			}
 		}
 	}
+}
+
+type move struct {
+	pod Pod
+	loc Location
 }
 
 type state struct {
@@ -84,6 +91,8 @@ type state struct {
 	prevDir      int // -1 for leftward, 1 for rightward
 
 	costSoFar int
+
+	moves []move
 }
 
 type stateHeap struct {
@@ -435,7 +444,16 @@ func (s state) canMove(i Pod, to Location) bool {
 			}
 			return s.prevDir >= 0
 		}
-		return true
+		if i.isA() {
+			return s.isADone()
+		}
+		if i.isB() {
+			return s.isBDone()
+		}
+		if i.isC() {
+			return s.isCDone()
+		}
+		return s.isDDone()
 	}
 	if from.isHall() {
 		if !locMatchesPod(i, to) {
@@ -453,6 +471,7 @@ func (s state) canMove(i Pod, to Location) bool {
 		return to > from
 	}
 	// column isn't done, only allow moves out.
+	// TODO: don't allow moves out when in "done" position
 	return to < from
 }
 
@@ -586,6 +605,7 @@ func (s state) move(i Pod, loc Location, dist int) *state {
 		prevMover:    i,
 		prevDir:      s.direction(i, loc),
 		costSoFar:    s.costSoFar + dist*i.cost(),
+		moves:        append(s.moves, move{i, loc}),
 	}
 	from := s.podLocations[i]
 	s2.podLocations[i] = loc
