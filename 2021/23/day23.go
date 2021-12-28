@@ -8,7 +8,7 @@ import (
 )
 
 // #############
-// #..x.x.x.x..#   01 2 3 4 56
+// #..x.x.x.x..#   01 2  3  4 56
 // ###A#D#A#C###   7, 11, 15, 19
 //   #D#C#B#A#     8  12  16  20
 //   #D#B#A#C#     9  13  17  21
@@ -70,6 +70,9 @@ func main() {
 			if s.win() {
 				fmt.Println("win!")
 				fmt.Println(s, "cost:", s.costSoFar)
+				// if minWin != nil {
+				// 	fmt.Println("(vs.", minWin.costSoFar, ")")
+				// }
 				fmt.Println(s.moves)
 				// winningStates = append(winningStates, s)
 				// if minWin == nil || s.costSoFar < minWin.costSoFar {
@@ -79,7 +82,7 @@ func main() {
 				// 	break
 				// }
 				// continue
-				break
+				return
 			}
 			if !visitedStates[s.podLocations] {
 				heap.Push(sh, s)
@@ -576,33 +579,32 @@ func (s state) isDHome(i Pod) bool {
 }
 
 func (s state) value() int {
-	return 0
-	// var value int
-	// for i := Pod(0); i < 4; i++ {
-	// 	value += aVal[s.podLocations[i]]
-	// 	if s.isAHome(i) {
-	// 		value -= 100
-	// 	}
-	// }
-	// for i := Pod(4); i < 8; i++ {
-	// 	value += 10 * bVal[s.podLocations[i]]
-	// 	if s.isBHome(i) {
-	// 		value -= 100
-	// 	}
-	// }
-	// for i := Pod(8); i < 12; i++ {
-	// 	value += 100 * cVal[s.podLocations[i]]
-	// 	if s.isCHome(i) {
-	// 		value -= 100
-	// 	}
-	// }
-	// for i := Pod(12); i < 16; i++ {
-	// 	value += 1000 * dVal[s.podLocations[i]]
-	// 	if s.isDHome(i) {
-	// 		value -= 100
-	// 	}
-	// }
-	// return value
+	var value int
+	for i := Pod(0); i < 4; i++ {
+		value += aVal[s.podLocations[i]]
+		if s.isAHome(i) {
+			value -= 10000
+		}
+	}
+	for i := Pod(4); i < 8; i++ {
+		value += 10 * bVal[s.podLocations[i]]
+		if s.isBHome(i) {
+			value -= 10000
+		}
+	}
+	for i := Pod(8); i < 12; i++ {
+		value += 100 * cVal[s.podLocations[i]]
+		if s.isCHome(i) {
+			value -= 10000
+		}
+	}
+	for i := Pod(12); i < 16; i++ {
+		value += 1000 * dVal[s.podLocations[i]]
+		if s.isDHome(i) {
+			value -= 10000
+		}
+	}
+	return value
 }
 
 func (s state) move(i Pod, loc Location) *state {
