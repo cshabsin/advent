@@ -5,7 +5,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/cshabsin/advent/2021/22/cube"
+	"github.com/cshabsin/advent/commongen/cube"
 	"github.com/cshabsin/advent/commongen/matrix"
 	"github.com/cshabsin/advent/commongen/readinp"
 )
