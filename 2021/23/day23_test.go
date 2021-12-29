@@ -2,8 +2,30 @@ package main
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
 	"testing"
 )
+
+type stateDataList []stateData
+
+func (sdl stateDataList) String() string {
+	var locstrs []string
+	for i := range sdl {
+		locstrs = append(locstrs, "[16]Location"+sdl[i].String())
+	}
+	return "{" + strings.Join(locstrs, ", ") + "}"
+}
+
+type stateData [16]Location
+
+func (sd stateData) String() string {
+	var locstrs []string
+	for i := range sd {
+		locstrs = append(locstrs, strconv.Itoa(int(sd[i])))
+	}
+	return "{" + strings.Join(locstrs, ", ") + "}"
+}
 
 func TestSampleRun(t *testing.T) {
 	sampleMoves := []struct {
@@ -35,8 +57,9 @@ func TestSampleRun(t *testing.T) {
 		{15, 6, 5}, {15, 5, 19},
 	}
 	st := sample.initFromPods()
+	var states stateDataList
 	for i, mv := range sampleMoves {
-		fmt.Println(st)
+		// fmt.Println(st)
 		nexts := st.possibleNexts()
 		if i < len(sampleMoves)-1 {
 			nextMove := sampleMoves[i+1]
@@ -59,8 +82,9 @@ func TestSampleRun(t *testing.T) {
 			break
 		}
 		st = st.move(mv.pod, mv.to)
+		states = append(states, st.podLocations)
 	}
-	fmt.Println(st)
+	fmt.Println(states)
 }
 
 // [{2 7} {2 2} {1 8} {2 3} {2 4} {2 5} {1 7} {3 9} {3 8} {3 7} {3 2} {3 3} {3 4} {13 19} {12 20} {14 21} {13 4} {12 19} {13 3} {12 4} {13 2} {13 7} {14 20} {12 3} {14 19} {12 2} {14 4} {15 22} {15 21} {15 20} {13 8} {4 11} {6 12} {7 13} {12 7} {4 2} {14 3} {15 19} {15 4} {3 5} {3 19} {11 15} {3 20} {9 16} {8 17} {11 4} {3 21} {11 19} {11 20} {2 6} {2 5} {2 19} {15 3} {15 4} {5 14} {6 11} {7 12} {6 3} {5 13} {6 4} {7 11} {7 3} {5 12} {5 11} {14 2} {14 11} {5 3} {9 15} {14 12} {14 13} {5 11} {5 12} {9 3} {9 11} {8 16} {8 15} {8 3} {1 1} {1 2} {1 3} {1 15} {1 16} {7 4} {7 15} {6 5} {6 4}]
