@@ -11,6 +11,22 @@ var (
 // Point3 is a point in 3-space.
 type Point3 [3]int
 
+func (p Point3) X() int {
+	return p[0]
+}
+
+func (p Point3) Y() int {
+	return p[1]
+}
+
+func (p Point3) Z() int {
+	return p[2]
+}
+
+func (p Point3) Clone() Point3 {
+	return Point3{p.X(), p.Y(), p.Z()}
+}
+
 func (p Point3) Sub(q Point3) Vector3 {
 	return Vector3{q[0] - p[0], q[1] - p[1], q[2] - p[2]}
 }
