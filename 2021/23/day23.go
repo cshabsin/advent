@@ -41,7 +41,7 @@ type Location byte
 type Pod byte
 
 func main() {
-	sh := &stateHeap{[]*state{sample.initFromPods()}}
+	sh := &stateHeap{[]*state{input.initFromPods()}}
 	heap.Init(sh)
 	i := 0
 	visitedStates := map[[16]Location]bool{}
