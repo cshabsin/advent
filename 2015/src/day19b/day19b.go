@@ -124,7 +124,7 @@ type formula struct {
 }
 
 func (f formula) Cost() int {
-	cost := f.steps
+	cost := f.steps + len(f.form)
 	// var fi, ti int
 	// var prevMatches int // prefer streaks
 	// for ti < len(f.target) {
