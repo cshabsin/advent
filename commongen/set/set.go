@@ -22,6 +22,15 @@ func (s Set[T]) Remove(value T) {
 	delete(s, value)
 }
 
+func (s Set[T]) Without(value T) Set[T] {
+	if !s.Contains(value) {
+		return s
+	}
+	w := s.Clone()
+	w.Remove(value)
+	return w
+}
+
 func (s Set[T]) Clone() Set[T] {
 	clone := Set[T]{}
 	for k := range s {
