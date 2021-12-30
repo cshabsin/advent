@@ -28,12 +28,13 @@ type program []*step
 func (p program) run() (int, int) {
 	var a, b int
 	var i int
+	a = 1
 	for {
 		if i >= len(p) {
 			break
 		}
 		step := p[i]
-		fmt.Println(i, "executing", step)
+		fmt.Println(i+1, "executing", step, "\t| a:", a, " \tb:", b)
 		switch step.i {
 		case hlf:
 			if step.reg == "a" {
@@ -74,7 +75,7 @@ func (p program) run() (int, int) {
 			} else {
 				val = b
 			}
-			if val%2 == 1 {
+			if val == 1 {
 				i += step.offset
 				continue
 			}
