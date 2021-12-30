@@ -7,7 +7,9 @@ type coster interface {
 }
 
 func Make[T coster](initElems []T) *Heap[T] {
-	return &Heap[T]{elems: initElems}
+	h := &Heap[T]{elems: initElems}
+	heap.Init(h)
+	return h
 }
 
 type Heap[T coster] struct {
