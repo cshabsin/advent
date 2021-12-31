@@ -163,8 +163,9 @@ func (s *state) trySpell(sp spell) *state {
 	if sp.cost > s.playerMana {
 		return nil
 	}
-	s.spells = append(s.spells, sp.name)
 	s = s.applyEffects().AddCost(sp.cost)
+	s.spells = append(s.spells, sp.name)
+	s.playerMana -= sp.cost
 	if _, ok := s.effects[sp.name]; ok {
 		return nil // can't cast a spell that's in effect.
 	}
