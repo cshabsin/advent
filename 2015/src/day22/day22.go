@@ -29,7 +29,7 @@ func main() {
 	// 	s = s.applyEffects()
 	// 	fmt.Println(s)
 	// }
-	Day22a()
+	Day22b()
 }
 
 func print(a ...interface{}) {
@@ -90,6 +90,7 @@ var (
 // boss: 55 hp, 8 dmg
 
 type state struct {
+	hardMode                          bool
 	spells                            []string
 	playerHP, playerMana, playerArmor int
 	bossHP, bossDmg                   int
@@ -98,8 +99,25 @@ type state struct {
 	costSoFar int
 }
 
+func (s *state) applyHardMode() *state {
+	if !s.hardMode {
+		return s
+	}
+	return &state{
+		hardMode:   s.hardMode,
+		spells:     s.spells,
+		playerHP:   s.playerHP - 1,
+		playerMana: s.playerMana,
+		bossHP:     s.bossHP,
+		bossDmg:    s.bossDmg,
+		effects:    s.effects,
+		costSoFar:  s.costSoFar,
+	}
+}
+
 func (s *state) applyEffects() *state {
 	newState := &state{
+		hardMode:   s.hardMode,
 		spells:     s.spells,
 		playerHP:   s.playerHP,
 		playerMana: s.playerMana,
@@ -131,6 +149,7 @@ func (s *state) applyEffects() *state {
 
 func (s *state) AddCost(cost int) *state {
 	return &state{
+		hardMode:    s.hardMode,
 		spells:      s.spells,
 		playerHP:    s.playerHP,
 		playerMana:  s.playerMana,
@@ -163,7 +182,7 @@ func (s *state) trySpell(sp spell) *state {
 	if sp.cost > s.playerMana {
 		return nil
 	}
-	s = s.applyEffects().AddCost(sp.cost)
+	s = s.applyHardMode().applyEffects().AddCost(sp.cost)
 	s.spells = append(s.spells, sp.name)
 	s.playerMana -= sp.cost
 	if _, ok := s.effects[sp.name]; ok {
@@ -220,6 +239,22 @@ func Day22a() {
 		bossDmg:    8,
 		effects:    map[string]effect{},
 	}
+	run(s)
+}
+
+func Day22b() {
+	s := &state{
+		hardMode:   true,
+		playerHP:   50,
+		playerMana: 500,
+		bossHP:     55,
+		bossDmg:    8,
+		effects:    map[string]effect{},
+	}
+	run(s)
+}
+
+func run(s *state) {
 	h := heapof.Make([]*state{s})
 	for {
 		if h.Len() == 0 {
