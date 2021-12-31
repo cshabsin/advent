@@ -3,7 +3,11 @@ package main
 import (
 	"constraints"
 	"fmt"
+	"math"
+	"sort"
+	"time"
 
+	"github.com/cshabsin/advent/commongen/ansi"
 	"github.com/cshabsin/advent/commongen/board"
 	"github.com/cshabsin/advent/commongen/readinp"
 )
@@ -11,6 +15,7 @@ import (
 func main() {
 	b := load("input.txt")
 	part1(b)
+	part2(b)
 }
 
 func part1(b board.Board[boolS]) {
@@ -28,6 +33,31 @@ func part1(b board.Board[boolS]) {
 		}
 	}
 	fmt.Println(station, max)
+}
+
+func part2(b board.Board[boolS]) {
+	station := board.MakeCoord(19, 22)
+	canSee := canSee(b, station)
+	var tgts fraclist
+	for f := range canSee {
+		tgts = append(tgts, f)
+	}
+	sort.Sort(tgts)
+	// fmt.Println(tgts)
+	ansi.Clear()
+	fmt.Println(b)
+	ansi.Loc(station.R(), station.C())
+	ansi.Bold("!")
+	for _, tgt := range tgts {
+		time.Sleep(time.Millisecond * 5)
+		coord := canSee[tgt]
+		ansi.Loc(coord.R(), coord.C())
+		ansi.Bold("#")
+		// ansi.Loc(coord.R(), coord.C()+40)
+		// fmt.Print(tgt, coord)
+	}
+	ansi.Loc(28, 0)
+	fmt.Println(tgts[199], canSee[tgts[199]])
 }
 
 type fraction struct {
@@ -52,10 +82,35 @@ func gcd(a, b int) int {
 
 func makeFrac(num, denom int) fraction {
 	g := gcd(num, denom)
-	if num < 0 {
-		return fraction{-num / g, -denom / g}
+	if num > 0 {
+		num = abs(num / g)
+	} else {
+		num = -abs(num / g)
 	}
-	return fraction{num / g, denom / g}
+	if denom > 0 {
+		denom = abs(denom / g)
+	} else {
+		denom = -abs(denom / g)
+	}
+	return fraction{num, denom}
+}
+
+type fraclist []fraction
+
+func (f fraclist) Len() int {
+	return len(f)
+}
+
+func (f fraclist) Swap(i, j int) {
+	t := f[i]
+	f[i] = f[j]
+	f[j] = t
+}
+
+func (f fraclist) Less(i, j int) bool {
+	iAtan := math.Atan2(-float64(f[i].denom), float64(f[i].num))
+	jAtan := math.Atan2(-float64(f[j].denom), float64(f[j].num))
+	return iAtan < jAtan
 }
 
 func canSee(b board.Board[boolS], station board.Coord) map[fraction]board.Coord {
