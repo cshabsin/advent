@@ -47,12 +47,16 @@ func part2(b board.Board[boolS]) {
 	ansi.Clear()
 	fmt.Println(b)
 	ansi.Loc(station.R(), station.C())
-	ansi.Bold("!")
-	for _, tgt := range tgts {
+	ansi.Color(35, "!")
+	for i, tgt := range tgts {
 		time.Sleep(time.Millisecond * 5)
 		coord := canSee[tgt]
 		ansi.Loc(coord.R(), coord.C())
-		ansi.Bold("#")
+		c := 34
+		if i == 199 {
+			c = 36
+		}
+		ansi.Color(c, "#")
 		// ansi.Loc(coord.R(), coord.C()+40)
 		// fmt.Print(tgt, coord)
 	}
