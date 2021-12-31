@@ -3,30 +3,32 @@ package main
 import (
 	"fmt"
 	"log"
+
+	"github.com/cshabsin/advent/commongen/heapof"
 )
 
 func main() {
-	s := state{
-		playerHP:    15,
-		playerMana:  500,
-		playerArmor: 0,
-		bossHP:      500,
-		effects: map[string]effect{
-			"Shield": {
-				armor:    5,
-				duration: 4,
-			},
-			"Poison": {
-				dmg:      5,
-				duration: 6,
-			},
-		},
-	}
-	fmt.Println(s)
-	for len(s.effects) != 0 {
-		s = s.applyEffects()
-		fmt.Println(s)
-	}
+	// s := state{
+	// 	playerHP:    15,
+	// 	playerMana:  500,
+	// 	playerArmor: 0,
+	// 	bossHP:      500,
+	// 	effects: map[string]effect{
+	// 		"Shield": {
+	// 			armor:    5,
+	// 			duration: 4,
+	// 		},
+	// 		"Poison": {
+	// 			dmg:      5,
+	// 			duration: 6,
+	// 		},
+	// 	},
+	// }
+	// fmt.Println(s)
+	// for len(s.effects) != 0 {
+	// 	s = s.applyEffects()
+	// 	fmt.Println(s)
+	// }
 	Day22a()
 }
 
@@ -92,16 +94,19 @@ type state struct {
 	playerHP, playerMana, playerArmor int
 	bossHP, bossDmg                   int
 	effects                           map[string]effect
+
+	costSoFar int
 }
 
-func (s state) applyEffects() state {
-	newState := state{
+func (s *state) applyEffects() *state {
+	newState := &state{
 		spells:     s.spells,
 		playerHP:   s.playerHP,
 		playerMana: s.playerMana,
 		bossHP:     s.bossHP,
 		bossDmg:    s.bossDmg,
 		effects:    map[string]effect{},
+		costSoFar:  s.costSoFar,
 	}
 	for name, eff := range s.effects {
 		newState.playerHP += eff.heal
@@ -124,6 +129,19 @@ func (s state) applyEffects() state {
 	return newState
 }
 
+func (s *state) AddCost(cost int) *state {
+	return &state{
+		spells:      s.spells,
+		playerHP:    s.playerHP,
+		playerMana:  s.playerMana,
+		playerArmor: s.playerArmor,
+		bossHP:      s.bossHP,
+		bossDmg:     s.bossDmg,
+		effects:     s.effects,
+		costSoFar:   cost + s.costSoFar,
+	}
+}
+
 func (s state) win() bool {
 	if s.bossHP <= 0 && s.playerHP > 0 {
 		return true
@@ -141,27 +159,20 @@ func (s state) lose() bool {
 // - runs the boss's turn.
 // - checks for a loss. If so, it returns false and 0.
 // - tries each spell recursively.
-func (s state) trySpell(cost, prune int, sp spell) (bool, int) {
-	if sp.cost > prune {
-		return false, 0
-	}
+func (s *state) trySpell(sp spell) *state {
 	if sp.cost > s.playerMana {
-		print("too expensive:", sp.name)
-		return false, 0
+		return nil
 	}
-	print("casting", sp.name)
 	s.spells = append(s.spells, sp.name)
-	s = s.applyEffects()
+	s = s.applyEffects().AddCost(sp.cost)
 	if _, ok := s.effects[sp.name]; ok {
-		return false, 0 // can't cast a spell that's in effect.
+		return nil // can't cast a spell that's in effect.
 	}
 	if s.win() {
-		print("win with cost", cost)
-		return true, cost
+		return s
 	}
 	if s.lose() {
-		print("lose")
-		return false, 0
+		return nil
 	}
 	if sp.duration != 0 {
 		s.effects[sp.name] = sp.effect()
@@ -169,55 +180,62 @@ func (s state) trySpell(cost, prune int, sp spell) (bool, int) {
 		s.bossHP -= sp.dmg
 		s.playerHP += sp.heal
 	}
-	cost += sp.cost
 	if s.win() {
-		print("win with cost", cost)
-		return true, cost
+		return s
 	}
 	if s.lose() {
-		print("lose")
-		return false, 0
+		return nil
 	}
 	s = s.applyEffects()
 	if s.win() {
-		print("win with cost", cost)
-		return true, cost
+		return s
 	}
 	if s.lose() {
-		print("lose")
-		return false, 0
+		return nil
 	}
-	s.playerHP -= s.bossDmg - s.playerArmor
+	dmg := s.bossDmg - s.playerArmor
+	if dmg < 1 {
+		dmg = 1
+	}
+	s.playerHP -= dmg
 	if s.win() {
-		print("win with cost", cost)
-		return true, cost
+		return s
 	}
 	if s.lose() {
-		print("lose")
-		return false, 0
+		return nil
 	}
-	return true, s.try(cost, prune)
+	return s
 }
 
-func (s state) try(parentCost, prune int) int {
-	print(fmt.Sprintf("trying state %+v", s))
-	minCost := prune
-	for _, spell := range spells {
-		win, cost := s.trySpell(0, minCost, spell)
-		if win && cost < minCost {
-			minCost = cost
-		}
-	}
-	return parentCost + minCost
+func (s *state) Cost() int {
+	return s.costSoFar
 }
 
 func Day22a() {
-	s := state{
+	s := &state{
 		playerHP:   50,
 		playerMana: 500,
 		bossHP:     55,
 		bossDmg:    8,
 		effects:    map[string]effect{},
 	}
-	fmt.Println(s.try(0, 99999))
+	h := heapof.Make([]*state{s})
+	for {
+		if h.Len() == 0 {
+			fmt.Println("out of states!")
+			return
+		}
+		parent := h.PopHeap()
+		for _, spell := range spells {
+			next := parent.trySpell(spell)
+			if next == nil {
+				continue
+			}
+			if next.win() {
+				fmt.Println("win!", next)
+				return
+			}
+			h.PushHeap(next)
+		}
+	}
 }
