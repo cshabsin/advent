@@ -11,8 +11,12 @@ import (
 	"github.com/cshabsin/advent/commongen/set"
 )
 
+// sample1: 8
+// sample2: 86
+// sample3: 132 (but current algorithm yields 140?)
+
 func main() {
-	b := load("input.txt")
+	b := load("sample3.txt")
 	part1(b)
 }
 
@@ -28,6 +32,7 @@ func part1(b *Maze) {
 		if i%10000 == 0 {
 			ansi.Loc(0, 0)
 			fmt.Println(state)
+			fmt.Println("traversals:", i, "; outstanding states:", h.Len())
 		}
 		i++
 		for _, next := range state.Nexts() {
@@ -119,6 +124,8 @@ func (m Maze) Nexts() []*Maze {
 		case '#':
 			continue
 		case '.':
+			nexts = append(nexts, m.MoveTo(nextCoord))
+		case '@':
 			nexts = append(nexts, m.MoveTo(nextCoord))
 		default:
 			if 'a' <= ch && ch <= 'z' {
