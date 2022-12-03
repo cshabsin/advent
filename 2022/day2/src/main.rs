@@ -17,10 +17,10 @@ fn main() {
 }
 
 fn pull_chars(line: &str) -> (char, char) {
-    let mut iter = line.chars();
-    let c1 = iter.next().unwrap();
-    iter.next();
-    (c1, iter.next().unwrap())
+    match line.chars().collect::<Vec<char>>()[..] {
+        [c1, _, c2]  => (c1, c2),
+        _ => { panic!("unexpected input {line}"); }
+    }
 }
 
 fn score(x: &str) -> i32 {
@@ -33,10 +33,9 @@ fn score(x: &str) -> i32 {
 }
 
 fn score2(x: &str) -> i32 {
-    let mut iter = x.chars();
-    let opp = RPS::from_opp(iter.next().unwrap());
-    iter.next();
-    let me = RPS::from_part2(&opp, iter.next().unwrap());
+    let (opp, me) = pull_chars(x);
+    let opp = RPS::from_opp(opp);
+    let me = RPS::from_part2(&opp, me);
     let result = GameResult::new(&me, &opp);
     // println!("{x}: opp({opp:?}) vs me({me:?}): {result:?}");
     result.bonus()+me.bonus()
