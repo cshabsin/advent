@@ -16,11 +16,17 @@ fn main() {
     println!("{lines}")
 }
 
-fn score(x: &str) -> i32 {
-    let mut iter = x.chars();
-    let opp = RPS::from_opp(iter.next().unwrap());
+fn pull_chars(line: &str) -> (char, char) {
+    let mut iter = line.chars();
+    let c1 = iter.next().unwrap();
     iter.next();
-    let me = RPS::from_part1(iter.next().unwrap());
+    (c1, iter.next().unwrap())
+}
+
+fn score(x: &str) -> i32 {
+    let (opp, me) = pull_chars(x);
+    let opp = RPS::from_opp(opp);
+    let me = RPS::from_part1(me);
     let result = GameResult::new(&me, &opp);
     // println!("{x}: opp({opp:?}) vs me({me:?}): {result:?}");
     result.bonus()+me.bonus()
