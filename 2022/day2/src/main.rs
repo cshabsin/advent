@@ -18,79 +18,117 @@ fn main() {
 
 fn score(x: &str) -> i32 {
     let mut iter = x.chars();
-    // let opp = iter.next().unwrap();
+    let opp = RPS::from_opp(iter.next().unwrap());
     iter.next();
-    iter.next();
-    let me = iter.next().unwrap();
-    let mut score = match me {
-        'X' => 1,
-        'Y' => 2,
-        'Z' => 3,
-        _ => {
-            panic!("unexpected me {me}");
-        }
-    };
-    if x == "A X" {
-        score += 3;
-    } else if x == "A Y" {
-        score += 6;
-    } else if x == "B Y" {
-        score += 3
-    } else if x == "B Z" {
-        score += 6;
-    } else if x == "C X" {
-        score += 6;
-    } else if x == "C Z" {
-        score += 3;
-    }
-    score
+    let me = RPS::from_part1(iter.next().unwrap());
+    let result = GameResult::new(&me, &opp);
+    // println!("{x}: opp({opp:?}) vs me({me:?}): {result:?}");
+    result.bonus()+me.bonus()
 }
 
 fn score2(x: &str) -> i32 {
     let mut iter = x.chars();
-    let opp = iter.next().unwrap();
+    let opp = RPS::from_opp(iter.next().unwrap());
     iter.next();
-    let me = iter.next().unwrap();
+    let me = RPS::from_part2(&opp, iter.next().unwrap());
+    let result = GameResult::new(&me, &opp);
+    // println!("{x}: opp({opp:?}) vs me({me:?}): {result:?}");
+    result.bonus()+me.bonus()
+}
 
-    match me {
-        'X' =>
-        // lose
-        {
-            match opp {
-                'A' => 3,
-                'B' => 1,
-                'C' => 2,
-                _ => {
-                    panic!("unknown opp {opp}");
-                }
+#[derive(PartialEq, Clone, Copy, Debug)]
+enum RPS {
+    Rock,
+    Paper,
+    Scissors,
+}
+
+impl RPS {
+    fn from_opp(opp: char) -> RPS {
+        match opp {
+            'A' => RPS::Rock,
+            'B' => RPS::Paper,
+            'C' => RPS::Scissors,
+            _ => {
+                panic!("unknown opp {opp}");
             }
         }
-        'Y' =>
-        // draw
-        {
-            match opp {
-                'A' => 1 + 3,
-                'B' => 2 + 3,
-                'C' => 3 + 3,
-                _ => {
-                    panic!("unknown opp {opp}");
-                }
+    }
+
+    fn from_part1(me: char) -> RPS {
+        match me {
+            'X' => RPS::Rock,
+            'Y' => RPS::Paper,
+            'Z' => RPS::Scissors,
+            _ => {
+                panic!("unknown me {me}");
             }
         }
-        'Z' =>
-        // win
-        {
-            match opp {
-                'A' => 2 + 6,
-                'B' => 3 + 6,
-                'C' => 1 + 6,
-                _ => {
-                    panic!("unknown opp {opp}");
+    }
+
+    fn from_part2(opp: &RPS, me: char) -> RPS {
+        match me {
+            'X' => {
+                // lose
+                match opp {
+                    RPS::Rock => RPS::Scissors,
+                    RPS::Paper => RPS::Rock,
+                    RPS::Scissors => RPS::Paper,
                 }
             }
+            'Y' => *opp, // draw
+            'Z' => {
+                // win
+                match opp {
+                    RPS::Rock => RPS::Paper,
+                    RPS::Paper => RPS::Scissors,
+                    RPS::Scissors => RPS::Rock,
+                }
+            }
+            _ => {
+                panic!("unknown me {me}");
+            }
         }
-        _ => {
-            panic!("unknown me {me}");
+    }
+
+    fn bonus(&self) -> i32 {
+        match self {
+            RPS::Rock => 1,
+            RPS::Paper => 2,
+            RPS::Scissors => 3,
+        }
+    }
+
+    fn beats(&self, opp: &RPS) -> bool {
+        (*self == RPS::Rock && *opp == RPS::Scissors)
+            || (*self == RPS::Paper && *opp == RPS::Rock)
+            || (*self == RPS::Scissors && *opp == RPS::Paper)
+    }
+}
+
+#[derive(Debug)]
+enum GameResult {
+    Win,
+    Draw,
+    Loss,
+}
+
+impl GameResult {
+    fn new(me: &RPS, opp: &RPS) -> GameResult {
+        if me == opp {
+            GameResult::Draw
+        } else if me.beats(opp) {
+            GameResult::Win
+        } else {
+            GameResult::Loss
+        }
+    }
+
+    fn bonus(&self) -> i32 {
+        match self {
+            GameResult::Loss => 0,
+            GameResult::Draw => 3,
+            GameResult::Win => 6,
         }
     }
 }
