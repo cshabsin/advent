@@ -8,11 +8,11 @@ use itertools::{Itertools, Chunk};
 fn main() -> io::Result<()> {
     let args: Vec<String> = env::args().collect();
     let file = File::open(&args[1])?;
-    if args.len() == 1 {
+    if args.len() == 2 {
         let total: u32 = io::BufReader::new(file).lines().map(priority).sum();
         println!("{total}");
     } else {
-        let total: u32 = io::BufReader::new(file).lines().into_iter().chunks(3).into_iter().map(priority_chunk).sum();//into_iter().chunks(3).into_iter().filter(priority_chunk).sum();
+        let total: u32 = io::BufReader::new(file).lines().into_iter().chunks(3).into_iter().map(priority_chunked).sum();//into_iter().chunks(3).into_iter().filter(priority_chunk).sum();
         println!("{total}");
     }
     Ok(())
@@ -35,7 +35,7 @@ fn priority(line: Result<String, std::io::Error>) -> u32 {
     panic!("no common entry found!");
 }
 
-fn priority_chunk(line_chunk: Chunk<std::io::Lines<std::io::BufReader<File>>>) -> u32 {
+fn priority_chunked(line_chunk: Chunk<std::io::Lines<std::io::BufReader<File>>>) -> u32 {
     let mut firsts = HashSet::new();
     let mut seconds = HashSet::new();
     for (i, line) in line_chunk.enumerate() {
@@ -48,7 +48,7 @@ fn priority_chunk(line_chunk: Chunk<std::io::Lines<std::io::BufReader<File>>>) -
             return value(line.as_bytes().into_iter().filter(|c| firsts.contains(*c) && seconds.contains(*c)).next().unwrap());
         }
     }
-    0
+    panic!("no common entry found!");
 }
 
 fn value(c: &u8) -> u32 {
