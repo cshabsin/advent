@@ -25,8 +25,8 @@ impl Pair {
         let line = line.as_ref().unwrap();
         let mut s = line.split(",");
         Pair {
-            first: parse_range(s.next().unwrap()),
-            second: parse_range(s.next().unwrap()),
+            first: Range::from_string(s.next().unwrap()),
+            second: Range::from_string(s.next().unwrap()),
         }
     }
 }
@@ -45,6 +45,14 @@ struct Range {
 }
 
 impl Range {
+    fn from_string(s: &str) -> Range {
+        let mut s = s.split("-");
+        Range {
+            first: s.next().unwrap().parse::<i32>().unwrap(),
+            last: s.next().unwrap().parse::<i32>().unwrap(),
+        }
+    }    
+
     fn contains(&self, other: &Range) -> bool {
         self.first <= other.first && self.last >= other.last
     }
@@ -58,10 +66,3 @@ impl Range {
     }
 }
 
-fn parse_range(s: &str) -> Range {
-    let mut s = s.split("-");
-    Range {
-        first: s.next().unwrap().parse::<i32>().unwrap(),
-        last: s.next().unwrap().parse::<i32>().unwrap(),
-    }
-}
