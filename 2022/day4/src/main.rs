@@ -6,31 +6,37 @@ use std::io::BufRead; // make BufReader available
 fn main() -> io::Result<()> {
     let args: Vec<String> = env::args().collect();
     let file = File::open(&args[1])?;
-    let mut filtfn : fn(&Result<String, io::Error>) -> bool = contain;
+    let mut filtfn: fn(&Pair) -> bool = contain;
     if args.len() > 2 {
         filtfn = overlap;
     }
-    let cnt = io::BufReader::new(file).lines().filter(filtfn).count();
+    let cnt = io::BufReader::new(file).lines().map(Pair::from_line).filter(filtfn).count();
     println!("{cnt}");
     Ok(())
 }
 
-fn contain(line: &Result<String, io::Error>) -> bool {
-    let line = line.as_ref().unwrap();
-    let mut s = line.split(",");
-    let first = parse_range(s.next().unwrap());
-    let second = parse_range(s.next().unwrap());
-
-    first.contains(&second) || second.contains(&first)
+struct Pair {
+    first: Range,
+    second: Range,
 }
 
-fn overlap(line: &Result<String, io::Error>) -> bool {
-    let line = line.as_ref().unwrap();
-    let mut s = line.split(",");
-    let first = parse_range(s.next().unwrap());
-    let second = parse_range(s.next().unwrap());
+impl Pair {
+    fn from_line(line: Result<String, io::Error>) -> Pair {
+        let line = line.as_ref().unwrap();
+        let mut s = line.split(",");
+        Pair {
+            first: parse_range(s.next().unwrap()),
+            second: parse_range(s.next().unwrap()),
+        }
+    }
+}
 
-    first.overlaps(&second)
+fn contain(pair: &Pair) -> bool {
+    pair.first.contains(&pair.second) || pair.second.contains(&pair.first)
+}
+
+fn overlap(pair: &Pair) -> bool {
+    pair.first.overlaps(&pair.second)
 }
 
 struct Range {
@@ -55,7 +61,7 @@ impl Range {
 fn parse_range(s: &str) -> Range {
     let mut s = s.split("-");
     Range {
-        first: s.next().unwrap().parse::<i32>().unwrap(), 
+        first: s.next().unwrap().parse::<i32>().unwrap(),
         last: s.next().unwrap().parse::<i32>().unwrap(),
     }
 }
