@@ -17,10 +17,8 @@ fn main() {
 }
 
 fn pull_chars(line: &str) -> (char, char) {
-    match line.chars().collect::<Vec<char>>()[..] {
-        [c1, _, c2]  => (c1, c2),
-        _ => { panic!("unexpected input {line}"); }
-    }
+    let mut i = line.chars();
+    (i.nth(0).unwrap(), i.nth(1).unwrap())
 }
 
 fn score(x: &str) -> i32 {
