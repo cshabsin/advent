@@ -6,9 +6,22 @@ use std::io::BufRead; // make BufReader available
 fn main() -> io::Result<()> {
     let args: Vec<String> = env::args().collect();
     let file = File::open(&args[1])?;
-    let overlaps = io::BufReader::new(file).lines().filter(overlap).count();
-    println!("{overlaps}");
+    let mut filtfn : fn(&Result<String, io::Error>) -> bool = contain;
+    if args.len() > 2 {
+        filtfn = overlap;
+    }
+    let cnt = io::BufReader::new(file).lines().filter(filtfn).count();
+    println!("{cnt}");
     Ok(())
+}
+
+fn contain(line: &Result<String, io::Error>) -> bool {
+    let line = line.as_ref().unwrap();
+    let mut s = line.split(",");
+    let first = parse_range(s.next().unwrap());
+    let second = parse_range(s.next().unwrap());
+
+    first.contains(&second) || second.contains(&first)
 }
 
 fn overlap(line: &Result<String, io::Error>) -> bool {
@@ -17,7 +30,7 @@ fn overlap(line: &Result<String, io::Error>) -> bool {
     let first = parse_range(s.next().unwrap());
     let second = parse_range(s.next().unwrap());
 
-    first.contains(&second) || second.contains(&first)
+    first.overlaps(&second)
 }
 
 struct Range {
@@ -28,6 +41,14 @@ struct Range {
 impl Range {
     fn contains(&self, other: &Range) -> bool {
         self.first <= other.first && self.last >= other.last
+    }
+
+    fn overlaps(&self, other: &Range) -> bool {
+        if self.first <= other.first {
+            return self.last >= other.first;
+        } else {
+            return other.overlaps(self);
+        }
     }
 }
 
