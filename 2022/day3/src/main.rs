@@ -12,7 +12,7 @@ fn main() -> io::Result<()> {
         let total: u32 = io::BufReader::new(file).lines().map(priority).sum();
         println!("{total}");
     } else {
-        let total: u32 = io::BufReader::new(file).lines().into_iter().chunks(3).into_iter().map(priority_chunked).sum();//into_iter().chunks(3).into_iter().filter(priority_chunk).sum();
+        let total: u32 = io::BufReader::new(file).lines().into_iter().chunks(3).into_iter().map(priority_chunked).sum();
         println!("{total}");
     }
     Ok(())
