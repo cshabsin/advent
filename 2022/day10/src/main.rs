@@ -1,4 +1,5 @@
 use std::env;
+use std::fmt::Display;
 use std::fs;
 use std::io;
 
@@ -13,18 +14,19 @@ fn main() -> io::Result<()> {
 fn get_num(input: &str) -> i32 {
     let mut c = Computer::new(input);
     let mut total = 0;
+    let mut s = Screen::new();
     loop {
         let (cycle, x) = c.cycle();
+        s.draw(cycle, x);
         match cycle {
             20 | 60 | 100 | 140 | 180 | 220 => {
-                total += x*cycle;
-                if cycle == 220 {
-                    break;
-                }
-            },
+                total += x * cycle;
+            }
+            240 => break,
             _ => {}
         }
     }
+    println!("{s}");
     total
 }
 
@@ -65,7 +67,7 @@ impl Computer {
         match self.instructions[self.ip] {
             Instruction::Noop() => {
                 self.advance_ip();
-            },
+            }
             Instruction::Addx(v) => {
                 self.progress += 1;
                 if self.progress == 2 {
@@ -97,6 +99,40 @@ impl Instruction {
                 panic!("unknown token {unknown}")
             }
         }
+    }
+}
+
+struct Screen {
+    screen: [bool; 40 * 6],
+}
+
+impl Screen {
+    fn new() -> Screen {
+        Screen {
+            screen: [false; 40 * 6],
+        }
+    }
+
+    fn draw(&mut self, cycle: i32, x: i32) {
+        // 0-39
+        let col = (cycle - 1) % 40;
+        self.screen[(cycle-1) as usize] = x >= col - 1 && x <= col + 1;
+    }
+}
+
+impl Display for Screen {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for (i, b) in self.screen.iter().enumerate() {
+            if *b {
+                write!(f, "#")?;
+            } else {
+                write!(f, ".")?;
+            }
+            if (i+1) % 40 == 0 {
+                write!(f, "\n")?;
+            }
+        }
+        Ok(())
     }
 }
 
