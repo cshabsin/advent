@@ -58,7 +58,7 @@ impl Board {
 
     fn do_move(&mut self, mv: &Move) {
         let hold = self.stacks.get_mut(mv.from).unwrap().pop(mv.count);
-        let hold: String = hold.chars().rev().collect();
+        // let hold: String = hold.chars().rev().collect();
         self.stacks.get_mut(mv.to).unwrap().push(&hold);
     }
 }
