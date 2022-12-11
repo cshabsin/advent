@@ -7,19 +7,19 @@ use std::io;
 fn main() -> io::Result<()> {
     let args: Vec<String> = env::args().collect();
     let input = fs::read_to_string(&args[1])?;
-    let num = get_num(&input);
-    println!("{num}");
+    let (num1, num2) = (get_num(&input, 4), get_num(&input, 14));
+    println!("{num1}, {num2}");
     Ok(())
 }
 
-fn get_num(input: &str) -> usize {
-    let mut last_four = VecDeque::new();
+fn get_num(input: &str, n: usize) -> usize {
+    let mut last_n = VecDeque::new();
     for (i, c) in input.chars().enumerate() {
-        if last_four.len() == 4 {
-            last_four.pop_front();
+        if last_n.len() == n {
+            last_n.pop_front();
         }
-        last_four.push_back(c);
-        if last_four.len() == 4 && unique(&last_four) {
+        last_n.push_back(c);
+        if last_n.len() == n && unique(&last_n) {
             return i+1;
         }
     }
@@ -46,6 +46,7 @@ mod tests {
 
     #[test]
     fn it_works() {
-        assert_eq!(get_num(TEST_INPUT), 7);
+        assert_eq!(get_num(TEST_INPUT, 4), 7);
+        assert_eq!(get_num(TEST_INPUT, 14), 19);
     }
 }
