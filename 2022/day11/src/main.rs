@@ -23,7 +23,7 @@ fn get_num(input: &str) -> usize {
         .map(|chunk| Monkey::new(chunk))
         .collect();
 
-    for _ in 0..20 {
+    for _ in 0..10000 {
         for m in &monkeys {
             m.inspect(&monkeys);
         }
@@ -104,7 +104,8 @@ impl Monkey {
     fn inspect(&self, monkeys: &Vec<Monkey>) {
         while self.has_items() {
             let mut item = self.pull_first_item();
-            item = self.op.apply(item) / 3;
+            // item = self.op.apply(item) / 3;
+            item = self.op.apply(item) % (2*7*3*17*11*19*5*13);
             let tgt_monkey = {
                 if item % self.test_div == 0 {
                     self.true_tgt
