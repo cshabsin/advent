@@ -7,24 +7,30 @@ fn main() -> io::Result<()> {
     let input = fs::read_to_string(&args[1])?;
     let num = get_num(&input, 2000000);
     println!("{num}");
+    let num = find_it(&input, 4000000);
+    println!("{num}");
     Ok(())
 }
 
-fn get_num(input: &str, row: i32) -> usize {
-    let mut sensors = Vec::new();
-    for line in input.split("\n") {
-        if line == "" {
-            continue;
-        }
-        sensors.push(Sensor::new(line));
-    }
-    let b = Board::new(sensors);
+fn get_num(input: &str, row: i64) -> usize {
+    let b = Board::new(input);
     b.count_on_row(row)
 }
 
+fn find_it(input: &str, max: i64) -> i64 {
+    let b = Board::new(input);
+    for row in 0..=max {
+        let col = b.row_has_beacon(row, max);
+        if col >= 0 {
+            return col * 4000000 + row;
+        }
+    }
+    -1
+}
+
 struct Coord {
-    x: i32,
-    y: i32,
+    x: i64,
+    y: i64,
 }
 
 impl Coord {
@@ -42,6 +48,7 @@ impl Coord {
 struct Sensor {
     sensor: Coord,
     closest_beacon: Coord,
+    distance: usize,
 }
 
 fn distance(c1: &Coord, c2: &Coord) -> usize {
@@ -50,41 +57,54 @@ fn distance(c1: &Coord, c2: &Coord) -> usize {
 
 impl Sensor {
     fn new(line: &str) -> Sensor {
+        let sensor = Coord::new(
+            line.strip_prefix("Sensor at ")
+                .unwrap()
+                .split(":")
+                .nth(0)
+                .unwrap(),
+        );
+        let closest_beacon = Coord::new(
+            line.split(": ")
+                .nth(1)
+                .unwrap()
+                .strip_prefix("closest beacon is at ")
+                .unwrap(),
+        );
+        let distance = distance(&sensor, &closest_beacon);
+
         Sensor {
-            sensor: Coord::new(
-                line.strip_prefix("Sensor at ")
-                    .unwrap()
-                    .split(":")
-                    .nth(0)
-                    .unwrap(),
-            ),
-            closest_beacon: Coord::new(
-                line.split(": ")
-                    .nth(1)
-                    .unwrap()
-                    .strip_prefix("closest beacon is at ")
-                    .unwrap(),
-            ),
+            sensor: sensor,
+            closest_beacon: closest_beacon,
+            distance: distance,
         }
     }
 
-    fn excludes(&self, x: i32, y: i32) -> bool {
+    fn excludes(&self, x: i64, y: i64) -> bool {
         if self.closest_beacon.x == x && self.closest_beacon.y == y {
             return false;
         }
-        distance(&self.sensor, &self.closest_beacon) >= distance(&self.sensor, &Coord { x, y })
+        self.distance >= distance(&self.sensor, &Coord { x, y })
+    }
+
+    // excludes_until returns the next x coordinate that is not excluded by this sensor on row y.
+    fn excludes_until(&self, x: i64, y: i64) -> i64 {
+        if !self.excludes(x, y) {
+            return x;
+        }
+        self.sensor.x + self.distance as i64 - (self.sensor.y - y).abs()
     }
 }
 
 struct Board {
     sensors: Vec<Sensor>,
-    minx: i32,
-    miny: i32,
-    maxx: i32,
-    maxy: i32,
+    minx: i64,
+    _miny: i64,
+    maxx: i64,
+    _maxy: i64,
 }
 
-fn prospective_min(beacon: i32, sensor: i32) -> i32 {
+fn prospective_min(beacon: i64, sensor: i64) -> i64 {
     if beacon < sensor {
         beacon
     } else {
@@ -92,7 +112,7 @@ fn prospective_min(beacon: i32, sensor: i32) -> i32 {
     }
 }
 
-fn prospective_max(beacon: i32, sensor: i32) -> i32 {
+fn prospective_max(beacon: i64, sensor: i64) -> i64 {
     if beacon > sensor {
         beacon
     } else {
@@ -101,7 +121,15 @@ fn prospective_max(beacon: i32, sensor: i32) -> i32 {
 }
 
 impl Board {
-    fn new(sensors: Vec<Sensor>) -> Board {
+    fn new(input: &str) -> Board {
+        let mut sensors = Vec::new();
+        for line in input.split("\n") {
+            if line == "" {
+                continue;
+            }
+            sensors.push(Sensor::new(line));
+        }
+
         let (mut minx, mut miny, mut maxx, mut maxy) = (100000000, 100000000, 0, 0);
         for s in &sensors {
             let prospective_minx = prospective_min(s.closest_beacon.x, s.sensor.x);
@@ -124,13 +152,13 @@ impl Board {
         Board {
             sensors: sensors,
             minx: minx,
-            miny: miny,
+            _miny: miny,
             maxx: maxx,
-            maxy: maxy,
+            _maxy: maxy,
         }
     }
 
-    fn count_on_row(&self, row: i32) -> usize {
+    fn count_on_row(&self, row: i64) -> usize {
         let mut rc = 0;
         for col in self.minx..=self.maxx {
             for s in &self.sensors {
@@ -141,6 +169,30 @@ impl Board {
             }
         }
         rc
+    }
+
+    fn row_has_beacon(&self, row: i64, max: i64) -> i64 {
+        let mut col = 0;
+        loop {
+            if col > max {
+                return -1;
+            }
+            let mut nextcol = col;
+            for s in &self.sensors {
+                let possible_nextcol = s.excludes_until(col, row);
+                if possible_nextcol > nextcol {
+                    // println!(
+                    //     "found {}, {} from beacon {}, {}",
+                    //     col, row, s.sensor.x, s.sensor.y
+                    // );
+                    nextcol = possible_nextcol;
+                }
+            }
+            if col == nextcol {
+                return col;
+            }
+            col = nextcol+1;
+        }
     }
 }
 
@@ -161,11 +213,44 @@ Sensor at x=20, y=1: closest beacon is at x=15, y=3";
 
 #[cfg(test)]
 mod tests {
+    use crate::distance;
+    use crate::find_it;
     use crate::get_num;
+    use crate::Board;
+    use crate::Coord;
+    use crate::Sensor;
     use crate::TEST_INPUT;
 
     #[test]
     fn it_works() {
         assert_eq!(get_num(TEST_INPUT, 10), 26);
+    }
+
+    #[test]
+    fn test_thing() {
+        let b = Board::new(TEST_INPUT);
+        assert_eq!(b.row_has_beacon(10, 20), -1);
+        assert_eq!(b.row_has_beacon(11, 20), 14);
+    }
+
+    #[test]
+    fn find_it_works() {
+        assert_eq!(find_it(TEST_INPUT, 20), 56000011);
+    }
+
+    #[test]
+    fn sensor_works() {
+        let sensor = Coord { x: 8, y: 7 };
+        let beacon = Coord { x: 2, y: 10 };
+        let distance = distance(&sensor, &beacon);
+        assert_eq!(distance, 9);
+        let s = Sensor {
+            sensor: sensor,
+            closest_beacon: beacon,
+            distance: distance,
+        };
+        assert_eq!(s.excludes_until(4, 6), 16);
+        assert_eq!(s.excludes_until(7, 5), 15);
+        assert_eq!(s.excludes_until(1, 4), 1);
     }
 }
