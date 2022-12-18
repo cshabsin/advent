@@ -84,7 +84,7 @@ fn get_num2(input: &str) -> usize {
         if cube.2 == 0 {
             cnt += 1; // neighbors won't return -1
         }
-    for (x, y, z) in neighbors(cube.0, cube.1, cube.2) {
+        for (x, y, z) in neighbors(cube.0, cube.1, cube.2) {
             if world[x][y][z] == Cell::Exterior {
                 cnt += 1;
             }
