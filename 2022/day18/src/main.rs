@@ -48,30 +48,7 @@ fn get_num2(input: &str) -> usize {
     // 0..21 on three sides. each cell is type "exterior" "lava" or "internal".
     // Paint from 0,0,0 to 21,21,21 all spots that can be reached?
     let mut world: [[[Cell; 31]; 31]; 31] = [[[Cell::Unknown; 31]; 31]; 31];
-    for y in 0..31 {
-        for z in 0..31 {
-            traverse(&cubes, &mut world, 0, y, z);
-            traverse(&cubes, &mut world, 30, y, z);
-        }
-        for x in 0..31 {
-            traverse(&cubes, &mut world, x, y, 0);
-            traverse(&cubes, &mut world, x, y, 30);
-        }
-    }
-    for x in 0..31 {
-        for z in 0..31 {
-            traverse(&cubes, &mut world, x, 0, z);
-            traverse(&cubes, &mut world, x, 30, z);
-        }
-    }
     traverse(&cubes, &mut world, 0, 0, 0);
-    traverse(&cubes, &mut world, 30, 0, 0);
-    traverse(&cubes, &mut world, 0, 30, 0);
-    traverse(&cubes, &mut world, 30, 30, 0);
-    traverse(&cubes, &mut world, 0, 0, 30);
-    traverse(&cubes, &mut world, 30, 0, 30);
-    traverse(&cubes, &mut world, 0, 30, 30);
-    traverse(&cubes, &mut world, 30, 30, 30);
     // once we have the world figured out, just count "Exterior" neighbors.
     let mut cnt = 0;
     for cube in &cubes {
