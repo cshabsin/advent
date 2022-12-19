@@ -1,4 +1,5 @@
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::env;
 use std::fs;
 use std::io;
@@ -14,7 +15,7 @@ fn main() -> io::Result<()> {
 }
 
 fn get_num(input: &str) -> usize {
-    let mut root = Rc::new(RefCell::new(Directory::new("/", None)));
+    let root = Rc::new(RefCell::new(Directory::new("/", None)));
     parse_input(input, root);
     0
 }
@@ -25,15 +26,18 @@ fn parse_input(input: &str, root: Rc<RefCell<Directory>>) {
         match InputLine::new(line) {
             InputLine::Root() => (),
             InputLine::Ls() => (),
-            InputLine::Dir(name) => cwd.borrow_mut().add_dir(&name),
+            InputLine::Dir(name) => add_dir(&cwd, &name),
             InputLine::File(name, size) => cwd.borrow_mut().add_file(&name, size),
             InputLine::ChdirUp() => {
-                let new_cwd = cwd.borrow().parent().unwrap();
-                cwd = new_cwd
+                let new_cwd = match cwd.borrow().parent() {
+                    Some(new_cwd) => new_cwd,
+                    None => panic!("no parent for {}", cwd.borrow().name)
+                };
+                cwd = new_cwd.clone();
             } // crash if cd .. in root
             InputLine::Chdir(dir) => {
                 let new_cwd = cwd.borrow().child(&dir);
-                cwd = new_cwd
+                cwd = new_cwd.clone();
             }
         }
     }
@@ -56,8 +60,8 @@ impl InputLine {
             InputLine::Ls()
         } else if line == "$ cd .." {
             InputLine::ChdirUp()
-        } else if line.starts_with("cd ") {
-            InputLine::Chdir(line.split_at(3).1.to_string())
+        } else if line.starts_with("$ cd ") {
+            InputLine::Chdir(line.split_at(5).1.to_string())
         } else if line.starts_with("dir ") {
             InputLine::Dir(line.split_at(4).1.to_string())
         } else {
@@ -73,7 +77,7 @@ impl InputLine {
 
 struct Directory {
     name: String,
-    subdirs: Vec<Rc<RefCell<Directory>>>,
+    subdirs: HashMap<String, Rc<RefCell<Directory>>>,
     files: Vec<File>,
     parent_link: Option<Weak<RefCell<Directory>>>,
 }
@@ -83,21 +87,48 @@ struct Directory {
 //         self.subdirs.push(Directory::new(name, Some<self>))
 //     }
 // }
+// fn add_dir(&mut self, name: &str) {
+//     if !self.subdirs.contains_key(name) {
+//         self.subdirs.insert(name, Rc::new(RefCell::new(Directory{name: name.to_string(), files: Vec::new(), subdirs: HashMap::new(), parent_link: Some())));
+//     }
+// }
+
+// TODO(cshabsin): Figure out if this can be done as a method on Directory.
+// Maybe using Rc::new_cyclic to hold a weak pointer to self to use in this?
+// We can't just construct a new Weak<RefCell<Directory>> of self, can we? That wouldn't have any connection to the existing Rc.
+// Or is Rc just That Magic?
+fn add_dir(dir: &Rc<RefCell<Directory>>, subdir: &str) {
+    println!("add_dir({}, {})", dir.borrow().name, subdir);
+    if dir.borrow().subdirs.contains_key(subdir) {
+        println!("already there");
+        return; // no need to do anything
+    }
+    dir.borrow_mut().subdirs.insert(
+        subdir.to_string(),
+        Rc::new(RefCell::new(Directory {
+            name: subdir.to_string(),
+            files: Vec::new(),
+            subdirs: HashMap::new(),
+            parent_link: Some(Rc::downgrade(dir)),
+        })),
+    );
+}
 
 impl Directory {
     fn new(name: &str, parent: Option<&Rc<RefCell<Directory>>>) -> Directory {
         Directory {
             name: name.to_string(),
-            subdirs: Vec::new(),
+            subdirs: HashMap::new(),
             files: Vec::new(),
             parent_link: match parent {
-                Some(parent) => Some(Rc::<RefCell<Directory>>::downgrade(parent)),
+                Some(parent) => Some(Rc::downgrade(parent)),
                 None => None,
             },
         }
     }
 
     fn add_file(&mut self, name: &str, size: usize) {
+        println!("add_file({}, {})", self.name, name);
         self.files.push(File {
             name: name.to_string(),
             size,
@@ -107,7 +138,7 @@ impl Directory {
     fn size(&self) -> usize {
         let mut size = 0;
         for dir in &self.subdirs {
-            size += dir.borrow().size();
+            size += dir.1.borrow().size();
         }
         for f in &self.files {
             size += f.size;
@@ -116,23 +147,19 @@ impl Directory {
     }
 
     fn child(&self, name: &str) -> Rc<RefCell<Directory>> {
-        for subdir in &self.subdirs {
-            if subdir.borrow().name == name {
-                return subdir.clone();
-            }
+        println!("child({}, {})", self.name, name);
+        match self.subdirs.get(name) {
+            None => panic!("no subdir {name} found in {}", self.name),
+            Some(foo) => foo.clone(),
         }
-        panic!("No directory {name} found in {}", self.name);
     }
 
     fn parent(&self) -> Option<Rc<RefCell<Directory>>> {
+        println!("parent({})", self.name);
         match &self.parent_link {
-            None => None,
+            None => panic!("attempt to get parent of root"),
             Some(parent_link) => parent_link.upgrade(),
         }
-    }
-
-    fn add_dir(&mut self, name: &str) {
-        
     }
 }
 
@@ -141,15 +168,55 @@ struct File {
     size: usize,
 }
 
-pub const TEST_INPUT: &str = "";
+pub const TEST_INPUT: &str = "$ cd /
+$ ls
+dir a
+14848514 b.txt
+8504156 c.dat
+dir d
+$ cd a
+$ ls
+dir e
+29116 f
+2557 g
+62596 h.lst
+$ cd e
+$ ls
+584 i
+$ cd ..
+$ cd ..
+$ cd d
+$ ls
+4060174 j
+8033020 d.log
+5626152 d.ext
+7214296 k
+";
 
 #[cfg(test)]
 mod tests {
+    use std::cell::RefCell;
+    use std::rc::Rc;
+
     use crate::get_num;
     use crate::TEST_INPUT;
+    use crate::Directory;
+    use crate::add_dir;
 
     #[test]
     fn it_works() {
         assert_eq!(get_num(TEST_INPUT), 0);
+    }
+
+    #[test]
+    fn dir_memory() {
+        let root = Rc::new(RefCell::new(Directory::new("/", None)));
+        root.borrow_mut().add_file("hi", 3);
+        add_dir(&root, "subdir");
+        let sd = root.borrow().child("subdir");
+        match sd.borrow().parent() {
+            Some(_) => (),
+            None => panic!("no parent")
+        };
     }
 }
