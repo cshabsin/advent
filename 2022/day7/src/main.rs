@@ -9,7 +9,7 @@ use std::rc::Weak;
 fn main() -> io::Result<()> {
     let args: Vec<String> = env::args().collect();
     let input = fs::read_to_string(&args[1])?;
-    let num = get_num(&input);
+    let num = get_num2(&input);
     println!("{num}");
     Ok(())
 }
@@ -27,6 +27,29 @@ fn get_num(input: &str) -> usize {
             Some(dir) => {
                 if dir.borrow().size() <= 100000 {
                     total += dir.borrow().size();
+                }
+                dirs.append(&mut dir.borrow().children());
+            }
+        }
+    }
+}
+
+fn get_num2(input: &str) -> usize {
+    let root = Rc::new(RefCell::new(Directory::new("/", None)));
+    parse_input(input, Rc::clone(&root));
+    let target_size = root.borrow().size() - 40000000;
+    let mut dirs = vec![Rc::clone(&root)];
+    let mut smallest_size = 400000000;
+    loop {
+        match dirs.pop() {
+            None => {
+                return smallest_size;
+            }
+            Some(dir) => {
+                let sz = dir.borrow().size();
+                if sz >= target_size && sz < smallest_size {
+                    println!("new smallest dir: {} ({})", dir.borrow().name, sz);
+                    smallest_size = sz;
                 }
                 dirs.append(&mut dir.borrow().children());
             }
