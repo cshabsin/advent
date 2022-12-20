@@ -16,28 +16,45 @@ fn main() -> io::Result<()> {
 
 fn get_num(input: &str) -> usize {
     let root = Rc::new(RefCell::new(Directory::new("/", None)));
-    parse_input(input, root);
-    0
+    parse_input(input, Rc::clone(&root));
+    let mut dirs = vec![Rc::clone(&root)];
+    let mut total = 0;
+    loop {
+        match dirs.pop() {
+            None => {
+                return total;
+            }
+            Some(dir) => {
+                if dir.borrow().size() <= 100000 {
+                    total += dir.borrow().size();
+                }
+                dirs.append(&mut dir.borrow().children());
+            }
+        }
+    }
 }
 
 fn parse_input(input: &str, root: Rc<RefCell<Directory>>) {
-    let mut cwd = root;
+    let mut cwd = Rc::clone(&root);
     for line in input.split("\n") {
+        if line == "" {
+            continue;
+        }
         match InputLine::new(line) {
             InputLine::Root() => (),
             InputLine::Ls() => (),
-            InputLine::Dir(name) => add_dir(&cwd, &name),
+            InputLine::Dir(name) => add_dir(Rc::clone(&cwd), &name),
             InputLine::File(name, size) => cwd.borrow_mut().add_file(&name, size),
             InputLine::ChdirUp() => {
                 let new_cwd = match cwd.borrow().parent() {
                     Some(new_cwd) => new_cwd,
-                    None => panic!("no parent for {}", cwd.borrow().name)
+                    None => panic!("no parent for {}", cwd.borrow().name),
                 };
-                cwd = new_cwd.clone();
+                cwd = Rc::clone(&new_cwd);
             } // crash if cd .. in root
             InputLine::Chdir(dir) => {
                 let new_cwd = cwd.borrow().child(&dir);
-                cwd = new_cwd.clone();
+                cwd = Rc::clone(&new_cwd);
             }
         }
     }
@@ -97,10 +114,10 @@ struct Directory {
 // Maybe using Rc::new_cyclic to hold a weak pointer to self to use in this?
 // We can't just construct a new Weak<RefCell<Directory>> of self, can we? That wouldn't have any connection to the existing Rc.
 // Or is Rc just That Magic?
-fn add_dir(dir: &Rc<RefCell<Directory>>, subdir: &str) {
-    println!("add_dir({}, {})", dir.borrow().name, subdir);
+fn add_dir(dir: Rc<RefCell<Directory>>, subdir: &str) {
+    // println!("add_dir({}, {})", dir.borrow().name, subdir);
     if dir.borrow().subdirs.contains_key(subdir) {
-        println!("already there");
+        // println!("already there");
         return; // no need to do anything
     }
     dir.borrow_mut().subdirs.insert(
@@ -109,7 +126,7 @@ fn add_dir(dir: &Rc<RefCell<Directory>>, subdir: &str) {
             name: subdir.to_string(),
             files: Vec::new(),
             subdirs: HashMap::new(),
-            parent_link: Some(Rc::downgrade(dir)),
+            parent_link: Some(Rc::downgrade(&dir)),
         })),
     );
 }
@@ -128,7 +145,7 @@ impl Directory {
     }
 
     fn add_file(&mut self, name: &str, size: usize) {
-        println!("add_file({}, {})", self.name, name);
+        // println!("add_file({}, {})", self.name, name);
         self.files.push(File {
             name: name.to_string(),
             size,
@@ -143,23 +160,32 @@ impl Directory {
         for f in &self.files {
             size += f.size;
         }
+        // println!("size({}): {}", self.name, size);
         size
     }
 
     fn child(&self, name: &str) -> Rc<RefCell<Directory>> {
-        println!("child({}, {})", self.name, name);
+        // println!("child({}, {})", self.name, name);
         match self.subdirs.get(name) {
             None => panic!("no subdir {name} found in {}", self.name),
-            Some(foo) => foo.clone(),
+            Some(foo) => Rc::clone(&foo),
         }
     }
 
     fn parent(&self) -> Option<Rc<RefCell<Directory>>> {
-        println!("parent({})", self.name);
+        // println!("parent({})", self.name);
         match &self.parent_link {
             None => panic!("attempt to get parent of root"),
             Some(parent_link) => parent_link.upgrade(),
         }
+    }
+
+    fn children(&self) -> Vec<Rc<RefCell<Directory>>> {
+        let mut rc = Vec::new();
+        for c in &self.subdirs {
+            rc.push(Rc::clone(&c.1));
+        }
+        rc
     }
 }
 
@@ -198,25 +224,25 @@ mod tests {
     use std::cell::RefCell;
     use std::rc::Rc;
 
-    use crate::get_num;
-    use crate::TEST_INPUT;
-    use crate::Directory;
     use crate::add_dir;
+    use crate::get_num;
+    use crate::Directory;
+    use crate::TEST_INPUT;
 
     #[test]
     fn it_works() {
-        assert_eq!(get_num(TEST_INPUT), 0);
+        assert_eq!(get_num(TEST_INPUT), 95437);
     }
 
     #[test]
     fn dir_memory() {
         let root = Rc::new(RefCell::new(Directory::new("/", None)));
         root.borrow_mut().add_file("hi", 3);
-        add_dir(&root, "subdir");
+        add_dir(Rc::clone(&root), "subdir");
         let sd = root.borrow().child("subdir");
         match sd.borrow().parent() {
             Some(_) => (),
-            None => panic!("no parent")
+            None => panic!("no parent"),
         };
     }
 }
