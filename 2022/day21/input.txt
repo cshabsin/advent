@@ -1125,7 +1125,7 @@ vvvp: nlcm - vdjv
 mnht: qchn * lwnc
 tlvf: 3
 ljnv: 3
-root: vpmn = pqtt
+root: vpmn + pqtt
 blsv: nmtr + tfbv
 tqsn: 13
 cqwq: 5

@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::env;
 use std::fs;
 use std::io;
-use std::num::ParseIntError;
+use std::time::SystemTime;
 
 fn main() -> io::Result<()> {
     let args: Vec<String> = env::args().collect();
@@ -12,13 +12,34 @@ fn main() -> io::Result<()> {
     Ok(())
 }
 
+fn get_num(input: &str) -> i64 {
+    let monkeys = Monkeys::new(input);
+    monkeys.eval("root")
+}
+
+fn get_num2(input: &str) -> i64 {
+    let now = SystemTime::now();
+    let mut monkeys = Monkeys::new(input);
+    monkeys.equalize_root();
+    for i in 0..10000000 {
+        monkeys.insert("humn", i);
+        if monkeys.eval("root") == 1 {
+            return i;
+        }
+        if i % 10000 == 0 {
+            println!("{i} : {}", now.elapsed().unwrap().as_secs());
+        }
+    }
+    -1
+}
+
 enum Monkey {
     Val(i64),
     Add((String, String)),
     Subtract((String, String)),
     Multiply((String, String)),
     Divide((String, String)),
-    Match((String, String))
+    Match((String, String)),
 }
 
 impl Monkey {
@@ -36,63 +57,69 @@ impl Monkey {
                     "*" => Monkey::Multiply((first, second)),
                     "/" => Monkey::Divide((first, second)),
                     "=" => Monkey::Match((first, second)),
-                    op => panic!("unrecognized operator {op}")
+                    op => panic!("unrecognized operator {op}"),
                 }
             }
         }
     }
 }
 
-fn eval_monkey(monkeys: &HashMap<&str, Monkey>, name: &str) -> i64 {
-    match monkeys.get(name).unwrap() {
-        Monkey::Val(v) => *v,
-        Monkey::Add((a, b)) => eval_monkey(monkeys, &a) + eval_monkey(monkeys, &b),
-        Monkey::Subtract((a, b)) => eval_monkey(monkeys, &a) - eval_monkey(monkeys, &b),
-        Monkey::Multiply((a, b)) => eval_monkey(monkeys, &a) * eval_monkey(monkeys, &b),
-        Monkey::Divide((a, b)) => eval_monkey(monkeys, &a) / eval_monkey(monkeys, &b),
-        Monkey::Match((a, b)) => {
-            if eval_monkey(monkeys, a) == eval_monkey(monkeys, b) {
-                1
-            } else {
-                0
+struct Monkeys {
+    monkeys: HashMap<String, Monkey>,
+}
+
+impl Monkeys {
+    fn new(input: &str) -> Monkeys {
+        let mut monkeys = HashMap::new();
+        for line in input.split("\n") {
+            if line == "" {
+                continue;
+            }
+            let mut split = line.split(": ");
+            let name = split.next().unwrap();
+            monkeys.insert(name.to_string(), Monkey::new(split.next().unwrap()));
+        }
+        Monkeys { monkeys }
+    }
+
+    fn eval(&self, name: &str) -> i64 {
+        match self.monkeys.get(name).unwrap() {
+            Monkey::Val(v) => *v,
+            Monkey::Add((a, b)) => self.eval(&a) + self.eval(&b),
+            Monkey::Subtract((a, b)) => self.eval(&a) - self.eval(&b),
+            Monkey::Multiply((a, b)) => self.eval(&a) * self.eval(&b),
+            Monkey::Divide((a, b)) => self.eval(&a) / self.eval(&b),
+            Monkey::Match((a, b)) => {
+                if self.eval(a) == self.eval(b) {
+                    1
+                } else {
+                    0
+                }
             }
         }
     }
+
+    fn equalize_root(&mut self) {
+        let pair = match self.monkeys.get("root").unwrap() {
+            Monkey::Add(p) => p,
+            Monkey::Subtract(p) => p,
+            Monkey::Multiply(p) => p,
+            Monkey::Divide(p) => p,
+            Monkey::Match(p) => p,
+            Monkey::Val(v) => panic!("unexpected Val node at root ({v})"),
+        };
+        self.monkeys.insert(
+            "root".to_string(),
+            Monkey::Match((pair.0.to_string(), pair.1.to_string())),
+        );
+    }
+
+    fn insert(&mut self, name: &str, val: i64) {
+        self.monkeys.insert(name.to_string(), Monkey::Val(val));
+    }
 }
 
-fn get_num(input: &str) -> i64 {
-    let mut monkeys = HashMap::new();
-    for line in input.split("\n") {
-        if line == "" {
-            continue;
-        }
-        let mut split = line.split(": ");
-        let name = split.next().unwrap();
-        monkeys.insert(name, Monkey::new(split.next().unwrap()));
-    }
-    eval_monkey(&monkeys, "root")
-}
-
-fn get_num2(input: &str) -> i64 {
-    let mut monkeys = HashMap::new();
-    for line in input.split("\n") {
-        if line == "" {
-            continue;
-        }
-        let mut split = line.split(": ");
-        let name = split.next().unwrap();
-        monkeys.insert(name, Monkey::new(split.next().unwrap()));
-    }
-    for i in 0..10000000 {
-        monkeys.insert("humn", Monkey::Val(i));
-        if eval_monkey(&monkeys, "root") == 1 {
-            return i;
-        }
-    }
-    -1
-}
-
-pub const TEST_INPUT: &str = "root: pppw = sjmn
+pub const TEST_INPUT: &str = "root: pppw + sjmn
 dbpl: 5
 cczh: sllz + lgvd
 zczc: 2
@@ -116,6 +143,11 @@ mod tests {
 
     #[test]
     fn it_works() {
+        assert_eq!(get_num(TEST_INPUT), 152);
+    }
+
+    #[test]
+    fn it_works2() {
         assert_eq!(get_num2(TEST_INPUT), 301);
     }
 }
