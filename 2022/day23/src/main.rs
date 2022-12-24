@@ -10,6 +10,8 @@ fn main() -> io::Result<()> {
     let input = fs::read_to_string(&args[1])?;
     let num = get_num(&input);
     println!("{num}");
+    let num = get_num2(&input);
+    println!("{num}");
     Ok(())
 }
 
@@ -24,7 +26,7 @@ fn get_num(input: &str) -> usize {
     println!("== Initial state ==");
     println!("{b}");
     for i in 0..10 {
-        b = b.next(&dirs);
+        (b, _) = b.next(&dirs);
         dirs = vec![
             *dirs.get(1).unwrap(),
             *dirs.get(2).unwrap(),
@@ -35,6 +37,31 @@ fn get_num(input: &str) -> usize {
         println!("{b}");
     }
     b.ground_tiles()
+}
+
+fn get_num2(input: &str) -> usize {
+    let mut b = Board::new(input);
+    let mut dirs = vec![
+        Direction::North,
+        Direction::South,
+        Direction::West,
+        Direction::East,
+    ];
+    let mut num = 1;
+    loop {
+        let changed: bool;
+        (b, changed) = b.next(&dirs);
+        if !changed {
+            return num;
+        }
+        num += 1;
+        dirs = vec![
+            *dirs.get(1).unwrap(),
+            *dirs.get(2).unwrap(),
+            *dirs.get(3).unwrap(),
+            *dirs.get(0).unwrap(),
+        ];
+    }
 }
 
 struct Board {
@@ -80,10 +107,12 @@ impl Board {
         self.board.contains(&(r, c))
     }
 
-    fn next(&self, dirs: &Vec<Direction>) -> Board {
+    fn next(&self, dirs: &Vec<Direction>) -> (Board, bool) {
         let mut proposals = HashMap::new();
+        let mut any_changed = false;
         for elf in &self.board {
-            let proposal = self.proposed_move(elf, dirs);
+            let (proposal, changed) = self.proposed_move(elf, dirs);
+            any_changed |= changed;
             if !proposals.contains_key(&proposal) {
                 proposals.insert(proposal, Vec::new());
             }
@@ -99,10 +128,10 @@ impl Board {
                 }
             }
         }
-        Board { board }
+        (Board { board }, any_changed)
     }
 
-    fn proposed_move(&self, elf: &(i32, i32), dirs: &Vec<Direction>) -> (i32, i32) {
+    fn proposed_move(&self, elf: &(i32, i32), dirs: &Vec<Direction>) -> ((i32, i32), bool) {
         let (r, c) = *elf;
         if !(self.is_elf(r - 1, c - 1)
             || self.is_elf(r - 1, c)
@@ -113,7 +142,7 @@ impl Board {
             || self.is_elf(r + 1, c)
             || self.is_elf(r + 1, c + 1))
         {
-            return (r, c);
+            return ((r, c), false);
         }
         for dir in dirs {
             match dir {
@@ -122,7 +151,7 @@ impl Board {
                         || self.is_elf(r - 1, c)
                         || self.is_elf(r - 1, c + 1))
                     {
-                        return (r - 1, c);
+                        return ((r - 1, c), true);
                     }
                 }
                 Direction::South => {
@@ -130,7 +159,7 @@ impl Board {
                         || self.is_elf(r + 1, c)
                         || self.is_elf(r + 1, c + 1))
                     {
-                        return (r + 1, c);
+                        return ((r + 1, c), true);
                     }
                 }
                 Direction::West => {
@@ -138,7 +167,7 @@ impl Board {
                         || self.is_elf(r, c - 1)
                         || self.is_elf(r + 1, c - 1))
                     {
-                        return (r, c - 1);
+                        return ((r, c - 1), true);
                     }
                 }
                 Direction::East => {
@@ -146,12 +175,12 @@ impl Board {
                         || self.is_elf(r, c + 1)
                         || self.is_elf(r + 1, c + 1))
                     {
-                        return (r, c + 1);
+                        return ((r, c + 1), true);
                     }
                 }
             }
         }
-        (r, c)
+        ((r, c), false)
     }
 
     fn bounds(&self) -> (i32, i32, i32, i32) {
@@ -215,11 +244,17 @@ pub const TEST_INPUT2: &str = ".....
 #[cfg(test)]
 mod tests {
     use crate::get_num;
+    use crate::get_num2;
     use crate::TEST_INPUT;
 
     #[test]
     fn it_works() {
         assert_eq!(get_num(TEST_INPUT), 110);
+    }
+
+    #[test]
+    fn it_works2() {
+        assert_eq!(get_num2(TEST_INPUT), 20);
     }
 
     #[test]
