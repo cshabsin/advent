@@ -7,9 +7,12 @@ use std::io;
 fn main() -> io::Result<()> {
     let args: Vec<String> = env::args().collect();
     let input = fs::read_to_string(&args[1])?;
-    let num = get_num(&input);
-    match num {
+    match get_num(&input) {
         Some(num) => println!("{num}"),
+        None => println!("no path found"),
+    }
+    match get_num2(&input) {
+        Some(num) => println!("num2: {num}"),
         None => println!("no path found"),
     }
     Ok(())
@@ -17,6 +20,27 @@ fn main() -> io::Result<()> {
 
 fn get_num(input: &str) -> Option<usize> {
     let b = Board::new(input);
+    find_distance(&b)
+}
+
+fn get_num2(input: &str) -> Option<usize> {
+    let mut b = Board::new(input);
+    let mut min_distance = None;
+    for pos in b.all_positions(0) {
+        b.position = pos;
+        match find_distance(&b) {
+            Some(dist) => {
+                if dist < min_distance.unwrap_or(1000) {
+                    min_distance = Some(dist);
+                }
+            }
+            None => (),
+        }
+    }
+    min_distance
+}
+
+fn find_distance(b: &Board) -> Option<usize> {
     let mut dist = HashMap::new();
     for (r, row) in b.board.iter().enumerate() {
         for (c, _) in row.iter().enumerate() {
@@ -36,12 +60,11 @@ fn get_num(input: &str) -> Option<usize> {
         history,
     }) = heap.pop()
     {
-        println!("delving position {}, {} (cost {})", position.0, position.1, cost);
         if position == b.target {
-            println!("history: ");
-            for p in history {
-                println!("{}, {}", p.0, p.1);
-            }
+            // println!("history: ");
+            // for p in history {
+            //     println!("{}, {}", p.0, p.1);
+            // }
             return Some(cost);
         }
         if cost > dist[&position] {
@@ -147,10 +170,27 @@ impl Board {
         res
     }
 
-    fn maybe_add(&self, res: &mut Vec<(usize, usize)>, target_pos: (usize, usize), current_altitude: i16) {
+    fn maybe_add(
+        &self,
+        res: &mut Vec<(usize, usize)>,
+        target_pos: (usize, usize),
+        current_altitude: i16,
+    ) {
         if self.altitude(target_pos) <= current_altitude + 1 {
             res.push(target_pos);
         }
+    }
+
+    fn all_positions(&self, want_altitude: i16) -> Vec<(usize, usize)> {
+        let mut rc = Vec::new();
+        for (row, row_vec) in self.board.iter().enumerate() {
+            for (col, altitude) in row_vec.iter().enumerate() {
+                if *altitude == want_altitude {
+                    rc.push((row, col));
+                }
+            }
+        }
+        rc
     }
 }
 
