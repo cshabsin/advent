@@ -25,20 +25,29 @@ fn get_num(input: &str) -> usize {
     heap.push(State {
         cost: 0,
         position: b.position,
+        history: vec![b.position],
     });
-    while let Some(State { cost, position }) = heap.pop() {
+    while let Some(State { cost, position, history }) = heap.pop() {
         if position == b.target {
+            println!("history: ");
+            for p in history {
+                println!("{}, {}", p.0, p.1);
+            }
             return cost;
         }
         if cost > dist[&position] {
             continue;
         }
         for neighbor in b.reachable_neighbors(position) {
+            let mut new_hist:Vec<_> = history.iter().map(|p| (p.0, p.1)).collect();
+            new_hist.push(neighbor);
+
             let next = State {
                 cost: cost + 1,
                 position: neighbor,
+                history: new_hist,
             };
-            if next.cost < dist[&neighbor] {
+            if cost + 1 < dist[&neighbor] {
                 heap.push(next);
                 *dist.get_mut(&neighbor).unwrap() = cost + 1;
             }
@@ -47,10 +56,11 @@ fn get_num(input: &str) -> usize {
     usize::MAX
 }
 
-#[derive(Copy, Clone, PartialEq, Eq, Ord, PartialOrd)]
+#[derive(PartialEq, Eq, PartialOrd, Ord)]
 struct State {
     cost: usize,
     position: (usize, usize),
+    history: Vec<(usize, usize)>,
 }
 
 struct Board {
@@ -74,7 +84,7 @@ impl Board {
                     }
                     'E' => {
                         target = Some((row, col));
-                        24 // surrounded by x,y,z in both sample and real data.
+                        25
                     }
                     'a'..='z' => (c as i16) - ('a' as i16),
                     other => panic!("unexpected char {other}"),
@@ -113,7 +123,7 @@ impl Board {
     }
 
     fn maybe_add(&self, res: &mut Vec<(usize, usize)>, pos: (usize, usize), altitude: i16) {
-        if pos == self.target || (self.altitude(pos) - altitude).abs() <= 1 {
+        if (self.altitude(pos) - altitude).abs() <= 1 {
             res.push(pos);
         }
     }
