@@ -8,11 +8,14 @@ fn main() -> io::Result<()> {
     let args: Vec<String> = env::args().collect();
     let input = fs::read_to_string(&args[1])?;
     let num = get_num(&input);
-    println!("{num}");
+    match num {
+        Some(num) => println!("{num}"),
+        None => println!("no path found"),
+    }
     Ok(())
 }
 
-fn get_num(input: &str) -> usize {
+fn get_num(input: &str) -> Option<usize> {
     let b = Board::new(input);
     let mut dist = HashMap::new();
     for (r, row) in b.board.iter().enumerate() {
@@ -27,19 +30,25 @@ fn get_num(input: &str) -> usize {
         position: b.position,
         history: vec![b.position],
     });
-    while let Some(State { cost, position, history }) = heap.pop() {
+    while let Some(State {
+        cost,
+        position,
+        history,
+    }) = heap.pop()
+    {
+        println!("delving position {}, {} (cost {})", position.0, position.1, cost);
         if position == b.target {
             println!("history: ");
             for p in history {
                 println!("{}, {}", p.0, p.1);
             }
-            return cost;
+            return Some(cost);
         }
         if cost > dist[&position] {
             continue;
         }
         for neighbor in b.reachable_neighbors(position) {
-            let mut new_hist:Vec<_> = history.iter().map(|p| (p.0, p.1)).collect();
+            let mut new_hist: Vec<_> = history.iter().map(|p| (p.0, p.1)).collect();
             new_hist.push(neighbor);
 
             let next = State {
@@ -47,20 +56,36 @@ fn get_num(input: &str) -> usize {
                 position: neighbor,
                 history: new_hist,
             };
-            if cost + 1 < dist[&neighbor] {
+            if next.cost < dist[&neighbor] {
                 heap.push(next);
                 *dist.get_mut(&neighbor).unwrap() = cost + 1;
             }
         }
     }
-    usize::MAX
+    None
 }
 
-#[derive(PartialEq, Eq, PartialOrd, Ord)]
+#[derive(PartialEq, Eq)]
 struct State {
     cost: usize,
     position: (usize, usize),
     history: Vec<(usize, usize)>,
+}
+
+impl Ord for State {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        other
+            .cost
+            .cmp(&self.cost)
+            .then_with(|| self.position.0.cmp(&other.position.0))
+            .then_with(|| self.position.1.cmp(&other.position.1))
+    }
+}
+
+impl PartialOrd for State {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
 }
 
 struct Board {
@@ -142,6 +167,6 @@ mod tests {
 
     #[test]
     fn it_works() {
-        assert_eq!(get_num(TEST_INPUT), 31);
+        assert_eq!(get_num(TEST_INPUT).unwrap(), 31);
     }
 }
