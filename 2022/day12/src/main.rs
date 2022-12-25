@@ -130,7 +130,7 @@ impl Board {
             .get(position.0)
             .unwrap_or(&Vec::new())
             .get(position.1)
-            .unwrap_or(&-100)
+            .unwrap_or(&1000)
     }
 
     fn reachable_neighbors(&self, position: (usize, usize)) -> Vec<(usize, usize)> {
@@ -147,9 +147,9 @@ impl Board {
         res
     }
 
-    fn maybe_add(&self, res: &mut Vec<(usize, usize)>, pos: (usize, usize), altitude: i16) {
-        if (self.altitude(pos) - altitude).abs() <= 1 {
-            res.push(pos);
+    fn maybe_add(&self, res: &mut Vec<(usize, usize)>, target_pos: (usize, usize), current_altitude: i16) {
+        if self.altitude(target_pos) <= current_altitude + 1 {
+            res.push(target_pos);
         }
     }
 }
