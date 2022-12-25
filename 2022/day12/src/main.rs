@@ -1,4 +1,5 @@
-use std::collections::HashSet;
+use std::collections::BinaryHeap;
+use std::collections::HashMap;
 use std::env;
 use std::fs;
 use std::io;
@@ -11,15 +12,49 @@ fn main() -> io::Result<()> {
     Ok(())
 }
 
-fn get_num(input: &str) -> u16 {
-    let mut b = Board::new(input);
-    let visited = HashSet::new();
+fn get_num(input: &str) -> usize {
+    let b = Board::new(input);
+    let mut dist = HashMap::new();
+    for (r, row) in b.board.iter().enumerate() {
+        for (c, _) in row.iter().enumerate() {
+            dist.insert((r, c), usize::MAX);
+        }
+    }
 
-    0
+    let mut heap = BinaryHeap::new();
+    heap.push(State {
+        cost: 0,
+        position: b.position,
+    });
+    while let Some(State { cost, position }) = heap.pop() {
+        if position == b.target {
+            return cost;
+        }
+        if cost > dist[&position] {
+            continue;
+        }
+        for neighbor in b.reachable_neighbors(position) {
+            let next = State {
+                cost: cost + 1,
+                position: neighbor,
+            };
+            if next.cost < dist[&neighbor] {
+                heap.push(next);
+                *dist.get_mut(&neighbor).unwrap() = cost + 1;
+            }
+        }
+    }
+    usize::MAX
+}
+
+#[derive(Copy, Clone, PartialEq, Eq, Ord, PartialOrd)]
+struct State {
+    cost: usize,
+    position: (usize, usize),
 }
 
 struct Board {
-    board: Vec<Vec<u16>>, // heights. row, col indexed.
+    board: Vec<Vec<i16>>, // heights. row, col indexed.
     position: (usize, usize),
     target: (usize, usize),
 }
@@ -27,39 +62,68 @@ struct Board {
 impl Board {
     fn new(input: &str) -> Board {
         let mut board = Vec::new();
-        let mut position = (0, 0);
-        let mut target = (0, 0);
+        let mut position = None;
+        let mut target = None;
         for (row, line) in input.split("\n").enumerate() {
-            let mut rowVec = Vec::new();
+            let mut row_vec = Vec::new();
             for (col, c) in line.chars().enumerate() {
-                rowVec.push(match c {
+                row_vec.push(match c {
                     'S' => {
-                        position = (row, col);
+                        position = Some((row, col));
                         0
                     }
                     'E' => {
-                        target = (row, col);
-                        25  // it's surrounded by x,y,z so just make it 25.
+                        target = Some((row, col));
+                        24 // surrounded by x,y,z in both sample and real data.
                     }
-                    'a'..='z' => (c as u16) - ('a' as u16),
+                    'a'..='z' => (c as i16) - ('a' as i16),
                     other => panic!("unexpected char {other}"),
                 });
             }
-            board.push(rowVec);
+            board.push(row_vec);
         }
         Board {
             board: board,
-            position: position,
-            target: target,
+            position: position.unwrap(),
+            target: target.unwrap(),
         }
     }
 
-    fn neighbors(&self, position: (usize, usize)) -> Vec<(usize, usize)> {
-        Vec::new()
+    fn altitude(&self, position: (usize, usize)) -> i16 {
+        *self
+            .board
+            .get(position.0)
+            .unwrap_or(&Vec::new())
+            .get(position.1)
+            .unwrap_or(&-100)
+    }
+
+    fn reachable_neighbors(&self, position: (usize, usize)) -> Vec<(usize, usize)> {
+        let mut res = Vec::new();
+        let current_altitude = self.altitude(position);
+        if position.0 != 0 {
+            self.maybe_add(&mut res, (position.0 - 1, position.1), current_altitude);
+        }
+        if position.1 != 0 {
+            self.maybe_add(&mut res, (position.0, position.1 - 1), current_altitude);
+        }
+        self.maybe_add(&mut res, (position.0 + 1, position.1), current_altitude);
+        self.maybe_add(&mut res, (position.0, position.1 + 1), current_altitude);
+        res
+    }
+
+    fn maybe_add(&self, res: &mut Vec<(usize, usize)>, pos: (usize, usize), altitude: i16) {
+        if pos == self.target || (self.altitude(pos) - altitude).abs() <= 1 {
+            res.push(pos);
+        }
     }
 }
 
-pub const TEST_INPUT: &str = "";
+pub const TEST_INPUT: &str = "Sabqponm
+abcryxxl
+accszExk
+acctuvwj
+abdefghi";
 
 #[cfg(test)]
 mod tests {
@@ -68,6 +132,6 @@ mod tests {
 
     #[test]
     fn it_works() {
-        assert_eq!(get_num(TEST_INPUT), 0);
+        assert_eq!(get_num(TEST_INPUT), 31);
     }
 }
