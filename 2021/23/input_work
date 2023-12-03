@@ -1,0 +1,35 @@
+Ds to right 12000
+As to left 9
+Bs home 130
+Cs home 1200
+Ds home 6000
+As home 6
+
+18000
+ 1200
+  130
+   15
+
+19345
+
+----
+
+As to left 9
+B1 to between D and A 50
+C2 home 500
+B right 30
+Ds home 14000
+Bs home 90
+C1 home 700
+As home 6
+
+14000
+  700
+  500
+   90
+   50
+   30
+    9
+    6
+
+15385

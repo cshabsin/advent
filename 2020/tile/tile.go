@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/cshabsin/advent/common/readinp"
+	"github.com/cshabsin/advent/commongen/readinp"
 )
 
 // Map is the structure of a set of tiles.
@@ -28,7 +28,7 @@ func (tm Map) GetTile(tileNum int) *Tile {
 
 // ReadFile reads an input file and produces a tile Map.
 func ReadFile(filename string) (*Map, error) {
-	ch, err := readinp.Read(filename)
+	ch, err := readinp.Read(filename, readinp.S)
 	if err != nil {
 		return nil, err
 	}
@@ -77,7 +77,7 @@ type Tile struct {
 }
 
 // Read reads a tile from the given readinp channel and returns it.
-func Read(ch chan readinp.Line) (*Tile, error) {
+func Read(ch chan readinp.Line[string]) (*Tile, error) {
 	var lines []string
 	for i := 0; i < 11; i++ {
 		line, err := ReadLine(ch)
@@ -312,7 +312,7 @@ func EdgeDual(a int) int {
 
 // ReadLine reads a single line from the given channel and trims it.
 // Returns EOF error on eof, or any other errors.
-func ReadLine(ch chan readinp.Line) (string, error) {
+func ReadLine(ch chan readinp.Line[string]) (string, error) {
 	line, ok := <-ch
 	if !ok {
 		return "", io.EOF
@@ -320,5 +320,5 @@ func ReadLine(ch chan readinp.Line) (string, error) {
 	if line.Error != nil {
 		return "", line.Error
 	}
-	return strings.TrimSpace(*line.Contents), nil
+	return strings.TrimSpace(line.Contents), nil
 }
