@@ -1,7 +1,6 @@
 package main
 
 import (
-	"constraints"
 	"fmt"
 
 	"github.com/cshabsin/advent/commongen/ansi"
@@ -9,6 +8,7 @@ import (
 	"github.com/cshabsin/advent/commongen/heapof"
 	"github.com/cshabsin/advent/commongen/readinp"
 	"github.com/cshabsin/advent/commongen/set"
+	"golang.org/x/exp/constraints"
 )
 
 // sample1: 8

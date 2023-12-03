@@ -1,6 +1,6 @@
 package stream
 
-import "constraints"
+import "golang.org/x/exp/constraints"
 
 type Stream[T any] chan T
 

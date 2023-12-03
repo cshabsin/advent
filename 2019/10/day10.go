@@ -1,7 +1,6 @@
 package main
 
 import (
-	"constraints"
 	"fmt"
 	"math"
 	"sort"
@@ -10,6 +9,7 @@ import (
 	"github.com/cshabsin/advent/commongen/ansi"
 	"github.com/cshabsin/advent/commongen/board"
 	"github.com/cshabsin/advent/commongen/readinp"
+	"golang.org/x/exp/constraints"
 )
 
 func main() {
