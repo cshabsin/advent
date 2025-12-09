@@ -63,19 +63,22 @@ func main() {
 	fmt.Println("total:", total)
 }
 
+// isInvalid checks if a number is "invalid". A number is considered invalid
+// if its string representation can be formed by repeating a smaller string
+// multiple times. For example, 1212 is invalid because it's "12" repeated twice.
 func isInvalid(i int) bool {
 	s := fmt.Sprintf("%d", i)
-	for div := len(s); div > 1; div-- {
-		if len(s)%div != 0 {
+	length := len(s)
+
+	// We check for all possible numbers of repetitions, from the length of the string down to 2.
+	for numRepeats := length; numRepeats > 1; numRepeats-- {
+		// If the length isn't divisible by numRepeats, then it can't be formed by repetition.
+		if length%numRepeats != 0 {
 			continue
 		}
-		partLen := len(s) / div
-		part := s[:partLen]
-		constructed := ""
-		for j := 0; j < div; j++ {
-			constructed += part
-		}
-		if constructed == s {
+		partLen := length / numRepeats
+		substring := s[:partLen]
+		if strings.Repeat(substring, numRepeats) == s {
 			return true
 		}
 	}
