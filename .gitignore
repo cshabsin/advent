@@ -23,6 +23,8 @@ _testmain.go
 *.test
 *.prof
 
+gemini_commit_message.txt
+
 # =========================
 # Operating System Files
 # =========================
