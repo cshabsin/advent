@@ -50,17 +50,14 @@ func joltage12(line string) int {
 		digits[lineIndex] = line[lineIndex]
 		lineIndex++
 	}
-	fmt.Println("processing", line)
 	lineIndex = 1
 	for lineIndex < len(line) {
 		// number of characters left in the line
 		lineRemaining := len(line) - lineIndex
-		fmt.Println("lineRemaining", lineRemaining)
 		searchStart := 0
 		if lineRemaining < 12 {
 			searchStart = 12 - lineRemaining
 		}
-		fmt.Println("searchStart", searchStart)
 		for digitsIndex := searchStart; digitsIndex < 12; digitsIndex++ {
 			if line[lineIndex+digitsIndex-searchStart] > digits[digitsIndex] {
 				// copy line[lineIndex] to digits for digitsIndex up to 12
