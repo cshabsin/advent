@@ -26,57 +26,55 @@ func main() {
 }
 
 func joltage(line string) int {
-	var firstDigit int
-	var secondDigit int
-	for index, c := range line {
-		i := int(c - '0')
-		if i > firstDigit && index != len(line)-1 {
-			firstDigit = i
-			secondDigit = 0
-			continue
-		}
-		if i > secondDigit {
-			secondDigit = i
+	var firstDigit, firstIdx int
+	// Find the largest digit in the string, excluding the last character.
+	for i := 0; i < len(line)-1; i++ {
+		val := int(line[i] - '0')
+		if val > firstDigit {
+			firstDigit = val
+			firstIdx = i
 		}
 	}
+
+	var secondDigit int
+	// Find the largest digit after the first digit.
+	for i := firstIdx + 1; i < len(line); i++ {
+		val := int(line[i] - '0')
+		if val > secondDigit {
+			secondDigit = val
+		}
+	}
+
 	return firstDigit*10 + secondDigit
 }
 
 func joltage12(line string) int {
-	var digits [12]byte
-	lineIndex := 0
-	// Load the first 12 digits
-	for lineIndex < 12 {
-		digits[lineIndex] = line[lineIndex]
-		lineIndex++
-	}
-	lineIndex = 1
-	for lineIndex < len(line) {
-		// number of characters left in the line
-		lineRemaining := len(line) - lineIndex
-		searchStart := 0
-		if lineRemaining < 12 {
-			searchStart = 12 - lineRemaining
+	// Find the lexicographically largest substring of length 12.
+	maxSub := line[:12]
+	for i := 1; i <= len(line)-12; i++ {
+		if sub := line[i : i+12]; sub > maxSub {
+			maxSub = sub
 		}
-		for digitsIndex := searchStart; digitsIndex < 12; digitsIndex++ {
-			if line[lineIndex+digitsIndex-searchStart] > digits[digitsIndex] {
-				// copy line[lineIndex] to digits for digitsIndex up to 12
-				lineOffset := digitsIndex - searchStart
-				for digitsIndex < 12 {
-					digits[digitsIndex] = line[lineIndex+lineOffset]
-					digitsIndex++
-					lineOffset++
-				}
+	}
+
+	digits := []byte(maxSub)
+
+	// Check if any suffix of the line (length < 12) can improve the end of our number.
+	for i := len(line) - 11; i < len(line); i++ {
+		suffix := line[i:]
+		offset := 12 - len(suffix)
+		for j := 0; j < len(suffix); j++ {
+			if suffix[j] > digits[offset+j] {
+				copy(digits[offset+j:], suffix[j:])
+				break
+			} else if suffix[j] < digits[offset+j] {
 				break
 			}
 		}
-
-		lineIndex++
 	}
 	var rc int
 	for _, d := range digits {
 		rc = rc*10 + int(d-'0')
 	}
-	fmt.Println(line, " became ", string(digits[0:12]), " or", rc)
 	return rc
 }
