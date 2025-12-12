@@ -1,3 +1,6 @@
+// Package main solves an Advent of Code style puzzle involving fitting polyomino shapes
+// into rectangular regions. It parses shape definitions and region requirements, then
+// uses a backtracking algorithm to determine if the shapes fit.
 package main
 
 import (
@@ -18,6 +21,7 @@ type Point struct {
 // Shape is a collection of points representing a present.
 type Shape []Point
 
+// Width returns the width of the bounding box of the shape.
 func (s Shape) Width() int {
 	maxC := 0
 	for _, p := range s {
@@ -28,6 +32,7 @@ func (s Shape) Width() int {
 	return maxC + 1
 }
 
+// Height returns the height of the bounding box of the shape.
 func (s Shape) Height() int {
 	maxR := 0
 	for _, p := range s {
@@ -46,11 +51,8 @@ func main() {
 	defer f.Close()
 
 	scanner := bufio.NewScanner(f)
-
 	var lines []string
 	for scanner.Scan() {
-		line := scanner.Text()
-		fmt.Println(line)
 		lines = append(lines, scanner.Text())
 	}
 	if err := scanner.Err(); err != nil {
@@ -186,6 +188,7 @@ func generateOrientations(s Shape) []Shape {
 	return res
 }
 
+// shapeKey generates a string representation of the shape for deduplication in a map.
 func shapeKey(s Shape) string {
 	var sb strings.Builder
 	for _, p := range s {
@@ -194,6 +197,7 @@ func shapeKey(s Shape) string {
 	return sb.String()
 }
 
+// solveRegion parses a region requirement line and attempts to find a valid arrangement of presents.
 func solveRegion(line string, allOrientations [][]Shape) bool {
 	parts := strings.Split(line, ":")
 	dims := strings.Split(parts[0], "x")
@@ -212,6 +216,7 @@ func solveRegion(line string, allOrientations [][]Shape) bool {
 		}
 	}
 
+	// Pruning: If the total area of pieces exceeds the grid area, it's impossible.
 	if totalArea > W*H {
 		return false
 	}
@@ -229,6 +234,7 @@ func solveRegion(line string, allOrientations [][]Shape) bool {
 	return backtrack(grid, pieces, 0, W, H, allOrientations)
 }
 
+// backtrack recursively attempts to place pieces on the grid.
 func backtrack(grid [][]bool, pieces []int, idx int, W, H int, allOrientations [][]Shape) bool {
 	if idx == len(pieces) {
 		return true
@@ -263,6 +269,7 @@ func backtrack(grid [][]bool, pieces []int, idx int, W, H int, allOrientations [
 	return false
 }
 
+// canPlace checks if the shape s can be placed at position (r, c) without collision.
 func canPlace(grid [][]bool, s Shape, r, c int) bool {
 	for _, p := range s {
 		if grid[r+p.r][c+p.c] {
@@ -272,6 +279,7 @@ func canPlace(grid [][]bool, s Shape, r, c int) bool {
 	return true
 }
 
+// place updates the grid to mark the cells occupied by shape s at (r, c) with val.
 func place(grid [][]bool, s Shape, r, c int, val bool) {
 	for _, p := range s {
 		grid[r+p.r][c+p.c] = val
