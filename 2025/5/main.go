@@ -1,103 +1,121 @@
+// Package main solves an Advent of Code style puzzle involving ranges and ingredients.
+// It reads a list of allowed ranges, merges them, and then checks a list of ingredients
+// to see how many fall within the allowed ranges.
 package main
 
 import (
 	"bufio"
 	"fmt"
-	"io"
 	"log"
 	"os"
 	"strconv"
 	"strings"
 )
 
-type rang struct {
-	first, last int
+// Range represents an inclusive interval [Start, End].
+type Range struct {
+	Start, End int
 }
 
 func main() {
 	f, err := os.Open("input.txt")
 	if err != nil {
-		log.Fatalf("input.txt: %v", err)
+		log.Fatalf("failed to open input.txt: %v", err)
 	}
 	defer f.Close()
-	r := bufio.NewReader(f)
-	fresh := map[rang]bool{}
 
-	for {
-		line, err := r.ReadString('\n')
-		if err != nil {
-			log.Fatalf("read: %v", err)
-		}
-		line = line[:len(line)-1] // trim the delimiter
+	scanner := bufio.NewScanner(f)
+	ranges := make(map[Range]bool)
+
+	// Part 1: Parse and merge ranges.
+	// The input format expects ranges (e.g., "5-10") until an empty line.
+	for scanner.Scan() {
+		line := scanner.Text()
 		if line == "" {
 			break
 		}
-		vals := strings.Split(line, "-")
-		first, err := strconv.Atoi(vals[0])
-		if err != nil {
-			log.Fatalf("atoi(%s): %v", vals[0], err)
+		parts := strings.Split(line, "-")
+		if len(parts) != 2 {
+			log.Fatalf("malformed range line: %q", line)
 		}
-		last, err := strconv.Atoi(vals[1])
+
+		start, err := strconv.Atoi(parts[0])
 		if err != nil {
-			log.Fatalf("atoi(%s): %v", vals[1], err)
+			log.Fatalf("invalid start value in line %q: %v", line, err)
 		}
-		addRang(fresh, first, last)
+		end, err := strconv.Atoi(parts[1])
+		if err != nil {
+			log.Fatalf("invalid end value in line %q: %v", line, err)
+		}
+
+		addRange(ranges, Range{Start: start, End: end})
 	}
-	var available int
-	for {
-		line, err := r.ReadString('\n')
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			log.Fatalf("read: %v", err)
-		}
-		line = line[:len(line)-1] // trim the delimiter
+	if err := scanner.Err(); err != nil {
+		log.Fatalf("error reading ranges: %v", err)
+	}
+
+	// Part 2: Count available ingredients.
+	// The rest of the file contains one ingredient (integer) per line.
+	var availableCount int
+	for scanner.Scan() {
+		line := scanner.Text()
 		ingredient, err := strconv.Atoi(line)
 		if err != nil {
-			log.Fatalf("atoi(%s): %v", line, err)
+			log.Fatalf("invalid ingredient line %q: %v", line, err)
 		}
-		for r := range fresh {
-			if ingredient >= r.first && ingredient <= r.last {
-				available++
+
+		for r := range ranges {
+			if ingredient >= r.Start && ingredient <= r.End {
+				availableCount++
 				break
 			}
 		}
 	}
-	fmt.Println(available)
-	fmt.Println(countIngredients(fresh), ":", fresh)
-}
-
-func addRang(fresh map[rang]bool, first, last int) {
-	for {
-		var found rang
-		for r := range fresh {
-			if last < r.first || first > r.last {
-				continue
-			}
-			// They overlap.
-			found = r
-			if r.first < first {
-				first = r.first
-			}
-			if r.last > last {
-				last = r.last
-			}
-			break
-		}
-		if found.first == 0 || found.last == 0 {
-			// no overlap found
-			break
-		}
-		delete(fresh, found)
+	if err := scanner.Err(); err != nil {
+		log.Fatalf("error reading ingredients: %v", err)
 	}
-	fresh[rang{first, last}] = true
+
+	fmt.Println(availableCount)
+	fmt.Printf("%d : %v\n", countCovered(ranges), ranges)
 }
 
-func countIngredients(fresh map[rang]bool) int {
+// addRange adds a new range to the set, merging it with any existing overlapping ranges.
+func addRange(ranges map[Range]bool, newRange Range) {
+	for {
+		var overlapped Range
+		found := false
+		for r := range ranges {
+			// Check for overlap: [Start, End] overlaps with [r.Start, r.End]
+			// if Start <= r.End && r.Start <= End.
+			if newRange.Start <= r.End && r.Start <= newRange.End {
+				overlapped = r
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			break
+		}
+
+		// Merge the found overlapping range into newRange.
+		if overlapped.Start < newRange.Start {
+			newRange.Start = overlapped.Start
+		}
+		if overlapped.End > newRange.End {
+			newRange.End = overlapped.End
+		}
+		// Remove the old unmerged range.
+		delete(ranges, overlapped)
+	}
+	ranges[newRange] = true
+}
+
+// countCovered calculates the total number of integers covered by the ranges.
+func countCovered(ranges map[Range]bool) int {
 	var count int
-	for r := range fresh {
-		count += r.last - r.first + 1
+	for r := range ranges {
+		count += r.End - r.Start + 1
 	}
 	return count
 }
