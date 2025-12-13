@@ -43,6 +43,38 @@ func (s Shape) Height() int {
 	return maxR + 1
 }
 
+// Flip returns a new Shape that is the horizontal flip of s, normalized.
+func (s Shape) Flip() Shape {
+	res := make(Shape, len(s))
+	for i, p := range s {
+		res[i] = Point{p.r, -p.c}
+	}
+	return normalize(res)
+}
+
+// Rotate returns a new Shape that is rotated 90 degrees clockwise, normalized.
+func (s Shape) Rotate() Shape {
+	res := make(Shape, len(s))
+	for i, p := range s {
+		res[i] = Point{p.c, -p.r}
+	}
+	return normalize(res)
+}
+
+// Board represents the grid where presents are placed.
+type Board struct {
+	Width, Height int
+	grid          [][]bool
+}
+
+func NewBoard(w, h int) *Board {
+	g := make([][]bool, h)
+	for r := range g {
+		g[r] = make([]bool, w)
+	}
+	return &Board{Width: w, Height: h, grid: g}
+}
+
 func main() {
 	f, err := os.Open("input.txt")
 	if err != nil {
@@ -155,26 +187,12 @@ func normalize(points []Point) Shape {
 func generateOrientations(s Shape) []Shape {
 	unique := make(map[string]Shape)
 
-	current := s
+	current := normalize(s)
 	for i := 0; i < 4; i++ {
-		// Add current rotation
-		norm := normalize(current)
-		unique[shapeKey(norm)] = norm
-
-		// Add flipped version of current rotation
-		flipped := make(Shape, len(current))
-		for j, p := range current {
-			flipped[j] = Point{p.r, -p.c}
-		}
-		normFlipped := normalize(flipped)
-		unique[shapeKey(normFlipped)] = normFlipped
-
-		// Rotate 90 deg clockwise for next iteration: (r, c) -> (c, -r)
-		next := make(Shape, len(current))
-		for j, p := range current {
-			next[j] = Point{p.c, -p.r}
-		}
-		current = next
+		unique[shapeKey(current)] = current
+		flipped := current.Flip()
+		unique[shapeKey(flipped)] = flipped
+		current = current.Rotate()
 	}
 
 	var res []Shape
@@ -226,16 +244,12 @@ func solveRegion(line string, allOrientations [][]Shape) bool {
 		return len(allOrientations[pieces[i]][0]) > len(allOrientations[pieces[j]][0])
 	})
 
-	grid := make([][]bool, H)
-	for r := 0; r < H; r++ {
-		grid[r] = make([]bool, W)
-	}
-
-	return backtrack(grid, pieces, 0, W, H, allOrientations)
+	board := NewBoard(W, H)
+	return backtrack(board, pieces, 0, allOrientations)
 }
 
 // backtrack recursively attempts to place pieces on the grid.
-func backtrack(grid [][]bool, pieces []int, idx int, W, H int, allOrientations [][]Shape) bool {
+func backtrack(b *Board, pieces []int, idx int, allOrientations [][]Shape) bool {
 	if idx == len(pieces) {
 		return true
 	}
@@ -249,18 +263,18 @@ func backtrack(grid [][]bool, pieces []int, idx int, W, H int, allOrientations [
 		sW := s.Width()
 
 		// Optimization: Don't iterate if the shape is larger than the grid.
-		if sH > H || sW > W {
+		if sH > b.Height || sW > b.Width {
 			continue
 		}
 
-		for r := 0; r <= H-sH; r++ {
-			for c := 0; c <= W-sW; c++ {
-				if canPlace(grid, s, r, c) {
-					place(grid, s, r, c, true)
-					if backtrack(grid, pieces, idx+1, W, H, allOrientations) {
+		for r := 0; r <= b.Height-sH; r++ {
+			for c := 0; c <= b.Width-sW; c++ {
+				if b.CanPlace(s, r, c) {
+					b.Place(s, r, c, true)
+					if backtrack(b, pieces, idx+1, allOrientations) {
 						return true
 					}
-					place(grid, s, r, c, false)
+					b.Place(s, r, c, false)
 				}
 			}
 		}
@@ -270,9 +284,9 @@ func backtrack(grid [][]bool, pieces []int, idx int, W, H int, allOrientations [
 }
 
 // canPlace checks if the shape s can be placed at position (r, c) without collision.
-func canPlace(grid [][]bool, s Shape, r, c int) bool {
+func (b *Board) CanPlace(s Shape, r, c int) bool {
 	for _, p := range s {
-		if grid[r+p.r][c+p.c] {
+		if b.grid[r+p.r][c+p.c] {
 			return false
 		}
 	}
@@ -280,8 +294,8 @@ func canPlace(grid [][]bool, s Shape, r, c int) bool {
 }
 
 // place updates the grid to mark the cells occupied by shape s at (r, c) with val.
-func place(grid [][]bool, s Shape, r, c int, val bool) {
+func (b *Board) Place(s Shape, r, c int, val bool) {
 	for _, p := range s {
-		grid[r+p.r][c+p.c] = val
+		b.grid[r+p.r][c+p.c] = val
 	}
 }
