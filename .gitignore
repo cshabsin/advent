@@ -77,3 +77,6 @@ $RECYCLE.BIN/
 *.lnk
 2020/23/day23.out
 2020/23c/day23c-2.out
+
+firebase-debug.log
+input.txt
