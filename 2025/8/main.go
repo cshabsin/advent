@@ -5,144 +5,149 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"slices"
 	"sort"
 	"strconv"
 	"strings"
 )
 
-type point struct {
-	x, y, z int
+type Point struct {
+	X, Y, Z int
 }
 
-type distanceValue struct {
-	distance    int
-	sourceIndex int
-	targetIndex int
+type Edge struct {
+	U, V int
+	Dist int
 }
 
 func main() {
-	f, err := os.Open("input.txt")
+	points, err := readInput("input.txt")
 	if err != nil {
-		log.Fatalf("failed to open input.txt: %v", err)
+		log.Fatalf("failed to read input: %v", err)
+	}
+
+	edges := generateEdges(points)
+	sort.Slice(edges, func(i, j int) bool {
+		return edges[i].Dist < edges[j].Dist
+	})
+
+	// Part 1: Connect the 1000 closest pairs.
+	uf := NewUnionFind(len(points))
+	limit := 1000
+	if len(edges) < limit {
+		limit = len(edges)
+	}
+
+	for i := 0; i < limit; i++ {
+		uf.Union(edges[i].U, edges[i].V)
+	}
+
+	sizes := uf.ComponentSizes()
+	sort.Sort(sort.Reverse(sort.IntSlice(sizes)))
+	if len(sizes) >= 3 {
+		fmt.Printf("Part 1: %d\n", sizes[0]*sizes[1]*sizes[2])
+	}
+
+	// Part 2: Continue connecting until one circuit remains.
+	var lastEdge Edge
+	for i := limit; i < len(edges); i++ {
+		if uf.Count() == 1 {
+			break
+		}
+		e := edges[i]
+		if uf.Union(e.U, e.V) {
+			lastEdge = e
+		}
+	}
+
+	p1 := points[lastEdge.U]
+	p2 := points[lastEdge.V]
+	fmt.Printf("Part 2: %d\n", p1.X*p2.X)
+}
+
+func readInput(filename string) ([]Point, error) {
+	f, err := os.Open(filename)
+	if err != nil {
+		return nil, err
 	}
 	defer f.Close()
 
-	var points []point
+	var points []Point
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
 		line := scanner.Text()
 		fields := strings.Split(line, ",")
+		if len(fields) < 3 {
+			continue
+		}
 		x, _ := strconv.Atoi(fields[0])
 		y, _ := strconv.Atoi(fields[1])
 		z, _ := strconv.Atoi(fields[2])
-		points = append(points, point{x, y, z})
+		points = append(points, Point{x, y, z})
 	}
-	topCount := 1000 // counting ten shortest connections in example, 1000 in real data
-	sort.Slice(points, func(i, j int) bool {
-		if points[i].x < points[j].x {
-			return true
-		}
-		if points[i].x > points[j].x {
-			return false
-		}
-		if points[i].y < points[j].y {
-			return true
-		}
-		if points[i].y > points[j].y {
-			return false
-		}
-		return points[i].z < points[j].z
-	})
-	// var lengths []int       // top n lengths
-	var dvs []distanceValue // length for each source to its nearest neighbor
-	for i, p := range points {
-		// do a triangle.
+	return points, scanner.Err()
+}
+
+func generateEdges(points []Point) []Edge {
+	var edges []Edge
+	for i := 0; i < len(points); i++ {
 		for j := i + 1; j < len(points); j++ {
-			dest := points[j]
-			dist := (p.x - dest.x) * (p.x - dest.x)
-			dist += (p.y - dest.y) * (p.y - dest.y)
-			dist += (p.z - dest.z) * (p.z - dest.z)
-			// if len(lengths) < topCount || dist < lengths[topCount-1] {
-			// 	lengths = append(lengths, dist)
-			// 	if len(lengths) > topCount {
-			// 		sort.Ints(lengths)
-			// 		lengths = lengths[:topCount]
-			// 	}
-			dvs = append(dvs, distanceValue{distance: dist, sourceIndex: i, targetIndex: j})
-			// }
+			p1 := points[i]
+			p2 := points[j]
+			dist := (p1.X-p2.X)*(p1.X-p2.X) + (p1.Y-p2.Y)*(p1.Y-p2.Y) + (p1.Z-p2.Z)*(p1.Z-p2.Z)
+			edges = append(edges, Edge{U: i, V: j, Dist: dist})
 		}
 	}
-	sort.Slice(dvs, func(i, j int) bool {
-		return dvs[i].distance < dvs[j].distance
-	})
-	cs := newCircuitSet()
-	for i := 0; i < topCount; i++ { // process top ten pairs
-		fmt.Println(points[dvs[i].sourceIndex], points[dvs[i].targetIndex])
-		cs.addDistanceValue(dvs[i])
-	}
-	// fmt.Println(len(cs.circuits))
-	// sort.Slice(cs.circuits, func(i, j int) bool {
-	// 	return len(cs.circuits[i]) > len(cs.circuits[j])
-	// })
-	// fmt.Println(len(cs.circuits[0]) * len(cs.circuits[1]) * len(cs.circuits[2]))
+	return edges
+}
 
-	i := topCount
-	var last distanceValue
-	for len(cs.circuits) != 1 || len(cs.inCircuit) != len(points) {
-		if i >= len(dvs) {
-			log.Fatal("got past the end")
+type UnionFind struct {
+	parent []int
+	size   []int
+	count  int
+}
+
+func NewUnionFind(n int) *UnionFind {
+	parent := make([]int, n)
+	size := make([]int, n)
+	for i := 0; i < n; i++ {
+		parent[i] = i
+		size[i] = 1
+	}
+	return &UnionFind{parent: parent, size: size, count: n}
+}
+
+func (uf *UnionFind) Find(i int) int {
+	if uf.parent[i] != i {
+		uf.parent[i] = uf.Find(uf.parent[i])
+	}
+	return uf.parent[i]
+}
+
+func (uf *UnionFind) Union(i, j int) bool {
+	rootI := uf.Find(i)
+	rootJ := uf.Find(j)
+	if rootI == rootJ {
+		return false
+	}
+	if uf.size[rootI] < uf.size[rootJ] {
+		rootI, rootJ = rootJ, rootI
+	}
+	uf.parent[rootJ] = rootI
+	uf.size[rootI] += uf.size[rootJ]
+	uf.count--
+	return true
+}
+
+func (uf *UnionFind) Count() int {
+	return uf.count
+}
+
+func (uf *UnionFind) ComponentSizes() []int {
+	var sizes []int
+	for i, p := range uf.parent {
+		if i == p {
+			sizes = append(sizes, uf.size[i])
 		}
-		fmt.Println(points[dvs[i].sourceIndex], points[dvs[i].targetIndex])
-		cs.addDistanceValue(dvs[i])
-		last = dvs[i]
-		i++
 	}
-	fmt.Println(points[last.sourceIndex], points[last.targetIndex])
-	fmt.Println(points[last.sourceIndex].x * points[last.targetIndex].x)
-}
-
-type circuitSet struct {
-	circuits  [][]int // list of indeces in each circuit
-	inCircuit map[int]int
-}
-
-func newCircuitSet() *circuitSet {
-	return &circuitSet{
-		inCircuit: map[int]int{},
-	}
-}
-
-func (c *circuitSet) addDistanceValue(pair distanceValue) {
-	sourceCircuit, sourceInCircuit := c.inCircuit[pair.sourceIndex]
-	targetCircuit, targetInCircuit := c.inCircuit[pair.targetIndex]
-	if sourceInCircuit && targetInCircuit {
-		if sourceCircuit != targetCircuit {
-			fmt.Println("merging ", sourceCircuit, " and ", targetCircuit)
-			c.circuits[sourceCircuit] = append(c.circuits[sourceCircuit], c.circuits[targetCircuit]...)
-			for _, p := range c.circuits[targetCircuit] {
-				c.inCircuit[p] = sourceCircuit
-			}
-			c.circuits = slices.Delete(c.circuits, targetCircuit, targetCircuit+1)
-			for point, circuit := range c.inCircuit {
-				if circuit > targetCircuit {
-					c.inCircuit[point] = circuit - 1
-				}
-			}
-		}
-		return
-	}
-	if sourceInCircuit {
-		c.circuits[sourceCircuit] = append(c.circuits[sourceCircuit], pair.targetIndex)
-		c.inCircuit[pair.targetIndex] = sourceCircuit
-	} else if targetInCircuit {
-		c.circuits[targetCircuit] = append(c.circuits[targetCircuit], pair.sourceIndex)
-		c.inCircuit[pair.sourceIndex] = targetCircuit
-	} else {
-		c.circuits = append(c.circuits, []int{pair.sourceIndex, pair.targetIndex})
-		c.inCircuit[pair.sourceIndex] = len(c.circuits) - 1
-		c.inCircuit[pair.targetIndex] = len(c.circuits) - 1
-		fmt.Println("adding new circuit", len(c.circuits)-1)
-	}
-
+	return sizes
 }
