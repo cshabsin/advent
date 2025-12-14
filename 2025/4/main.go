@@ -9,7 +9,11 @@ package main
 
 import (
 	"fmt"
+	"image"
+	"image/color"
+	"image/gif"
 	"log"
+	"os"
 
 	"github.com/cshabsin/advent/common/readinp"
 )
@@ -78,8 +82,11 @@ func countAccessible(board [][]bool) int {
 // It returns the total number of cells removed.
 func runRemovalSimulation(board [][]bool) int {
 	var totalRemoved int
-	step := 1
-	fmt.Print("\033[2J")
+	var images []*image.Paletted
+	var delays []int
+	palette := []color.Color{color.White, color.Black, color.RGBA{255, 0, 0, 255}}
+	scale := 5
+
 	for {
 		toRemove := make(map[coord]bool)
 
@@ -98,22 +105,25 @@ func runRemovalSimulation(board [][]bool) int {
 			break
 		}
 
-		fmt.Print("\033[H")
-		fmt.Printf("Step %d:\n", step)
+		rect := image.Rect(0, 0, len(board[0])*scale, len(board)*scale)
+		img := image.NewPaletted(rect, palette)
 		for r := 0; r < len(board); r++ {
 			for c := 0; c < len(board[r]); c++ {
+				var col uint8
 				if toRemove[coord{r, c}] {
-					fmt.Print("X")
+					col = 2
 				} else if board[r][c] {
-					fmt.Print("@")
-				} else {
-					fmt.Print(".")
+					col = 1
+				}
+				for dr := 0; dr < scale; dr++ {
+					for dc := 0; dc < scale; dc++ {
+						img.SetColorIndex(c*scale+dc, r*scale+dr, col)
+					}
 				}
 			}
-			fmt.Println()
 		}
-		fmt.Println()
-		step++
+		images = append(images, img)
+		delays = append(delays, 10) // 100ms delay
 
 		// Second pass: apply the removals.
 		for cell := range toRemove {
@@ -121,6 +131,19 @@ func runRemovalSimulation(board [][]bool) int {
 		}
 		totalRemoved += len(toRemove)
 	}
+
+	f, err := os.Create("animation.gif")
+	if err != nil {
+		log.Printf("failed to create gif: %v", err)
+	} else {
+		defer f.Close()
+		if err := gif.EncodeAll(f, &gif.GIF{Image: images, Delay: delays}); err != nil {
+			log.Printf("failed to encode gif: %v", err)
+		} else {
+			fmt.Println("Animation saved to animation.gif")
+		}
+	}
+
 	return totalRemoved
 }
 
