@@ -21,6 +21,9 @@ const (
 	accessibilityThreshold = 4
 )
 
+// coord represents a coordinate on the board.
+type coord struct{ r, c int }
+
 func main() {
 	board, err := parseBoard("input.txt")
 	if err != nil {
@@ -75,16 +78,17 @@ func countAccessible(board [][]bool) int {
 // It returns the total number of cells removed.
 func runRemovalSimulation(board [][]bool) int {
 	var totalRemoved int
+	step := 1
+	fmt.Print("\033[2J")
 	for {
-		type coord struct{ r, c int }
-		var toRemove []coord
+		toRemove := make(map[coord]bool)
 
 		// First pass: identify all cells to be removed in this step.
 		// We can't modify the board while iterating, as it would affect neighbor counts for subsequent cells in the same step.
 		for r := 0; r < len(board); r++ {
 			for c := 0; c < len(board[r]); c++ {
 				if getCell(board, r, c) && isAccessible(board, r, c) {
-					toRemove = append(toRemove, coord{r, c})
+					toRemove[coord{r, c}] = true
 				}
 			}
 		}
@@ -94,8 +98,25 @@ func runRemovalSimulation(board [][]bool) int {
 			break
 		}
 
+		fmt.Print("\033[H")
+		fmt.Printf("Step %d:\n", step)
+		for r := 0; r < len(board); r++ {
+			for c := 0; c < len(board[r]); c++ {
+				if toRemove[coord{r, c}] {
+					fmt.Print("X")
+				} else if board[r][c] {
+					fmt.Print("@")
+				} else {
+					fmt.Print(".")
+				}
+			}
+			fmt.Println()
+		}
+		fmt.Println()
+		step++
+
 		// Second pass: apply the removals.
-		for _, cell := range toRemove {
+		for cell := range toRemove {
 			board[cell.r][cell.c] = false
 		}
 		totalRemoved += len(toRemove)
