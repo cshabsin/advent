@@ -54,26 +54,23 @@ func main() {
 		}
 		return points[i].z < points[j].z
 	})
-	var lengths []int       // top n lengths
+	// var lengths []int       // top n lengths
 	var dvs []distanceValue // length for each source to its nearest neighbor
 	for i, p := range points {
 		// do a triangle.
 		for j := i + 1; j < len(points); j++ {
 			dest := points[j]
-			if i == j {
-				continue
-			}
 			dist := (p.x - dest.x) * (p.x - dest.x)
 			dist += (p.y - dest.y) * (p.y - dest.y)
 			dist += (p.z - dest.z) * (p.z - dest.z)
-			if len(lengths) < topCount || dist < lengths[topCount-1] {
-				lengths = append(lengths, dist)
-				if len(lengths) > topCount {
-					sort.Ints(lengths)
-					lengths = lengths[:topCount]
-				}
-				dvs = append(dvs, distanceValue{distance: dist, sourceIndex: i, targetIndex: j})
-			}
+			// if len(lengths) < topCount || dist < lengths[topCount-1] {
+			// 	lengths = append(lengths, dist)
+			// 	if len(lengths) > topCount {
+			// 		sort.Ints(lengths)
+			// 		lengths = lengths[:topCount]
+			// 	}
+			dvs = append(dvs, distanceValue{distance: dist, sourceIndex: i, targetIndex: j})
+			// }
 		}
 	}
 	sort.Slice(dvs, func(i, j int) bool {
@@ -81,13 +78,28 @@ func main() {
 	})
 	cs := newCircuitSet()
 	for i := 0; i < topCount; i++ { // process top ten pairs
+		fmt.Println(points[dvs[i].sourceIndex], points[dvs[i].targetIndex])
 		cs.addDistanceValue(dvs[i])
 	}
-	fmt.Println(len(cs.circuits))
-	sort.Slice(cs.circuits, func(i, j int) bool {
-		return len(cs.circuits[i]) > len(cs.circuits[j])
-	})
-	fmt.Println(len(cs.circuits[0]) * len(cs.circuits[1]) * len(cs.circuits[2]))
+	// fmt.Println(len(cs.circuits))
+	// sort.Slice(cs.circuits, func(i, j int) bool {
+	// 	return len(cs.circuits[i]) > len(cs.circuits[j])
+	// })
+	// fmt.Println(len(cs.circuits[0]) * len(cs.circuits[1]) * len(cs.circuits[2]))
+
+	i := topCount
+	var last distanceValue
+	for len(cs.circuits) != 1 || len(cs.inCircuit) != len(points) {
+		if i >= len(dvs) {
+			log.Fatal("got past the end")
+		}
+		fmt.Println(points[dvs[i].sourceIndex], points[dvs[i].targetIndex])
+		cs.addDistanceValue(dvs[i])
+		last = dvs[i]
+		i++
+	}
+	fmt.Println(points[last.sourceIndex], points[last.targetIndex])
+	fmt.Println(points[last.sourceIndex].x * points[last.targetIndex].x)
 }
 
 type circuitSet struct {
@@ -130,6 +142,7 @@ func (c *circuitSet) addDistanceValue(pair distanceValue) {
 		c.circuits = append(c.circuits, []int{pair.sourceIndex, pair.targetIndex})
 		c.inCircuit[pair.sourceIndex] = len(c.circuits) - 1
 		c.inCircuit[pair.targetIndex] = len(c.circuits) - 1
+		fmt.Println("adding new circuit", len(c.circuits)-1)
 	}
 
 }
