@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Integer Linear Programming - Branch & Bound Visualizer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+
+        .mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Matrix Input Styles */
+        .matrix-cell {
+            width: 40px;
+            height: 40px;
+            text-align: center;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            transition: all 0.2s;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .matrix-cell.one {
+            background-color: #3b82f6;
+            color: white;
+            border-color: #2563eb;
+        }
+        .matrix-cell.zero {
+            background-color: white;
+            color: #9ca3af;
+        }
+        
+        /* Tree Node Styles */
+        .node {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            position: absolute;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            z-index: 10;
+        }
+
+        .node-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .node-label { font-size: 9px; opacity: 0.8; }
+        .node-val { font-size: 14px; }
+
+        .node.active { background-color: #fbbf24; border: 2px solid #d97706; color: black; transform: scale(1.1); z-index: 20; }
+        .node.visited { background-color: #e5e7eb; border: 2px solid #9ca3af; color: #4b5563; }
+        .node.pruned { background-color: #fecaca; border: 2px solid #ef4444; color: #b91c1c; opacity: 0.6; }
+        .node.solution { background-color: #86efac; border: 2px solid #22c55e; color: #14532d; transform: scale(1.1); }
+        .node.optimal { background-color: #10b981; border: 3px solid #064e3b; color: white; box-shadow: 0 0 10px #10b981; transform: scale(1.2); z-index: 30; }
+
+        .link {
+            position: absolute;
+            transform-origin: 0 0;
+            background-color: #d1d5db;
+            height: 2px;
+            z-index: 1;
+            transition: background-color 0.3s;
+        }
+        .link.active { background-color: #fbbf24; height: 3px; }
+        .link.solution { background-color: #22c55e; height: 3px; }
+
+        #tree-container {
+            overflow: auto;
+            position: relative;
+            background-image: radial-gradient(#e5e7eb 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        /* Scrollbar styles */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
+    </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden">
+
+    <!-- Header -->
+    <header class="bg-white border-b border-gray-200 p-4 flex justify-between items-center shadow-sm flex-shrink-0 z-20">
+        <div>
+            <h1 class="text-xl font-bold text-gray-800">ILP Visualizer <span class="text-sm font-normal text-gray-500 ml-2">Branch & Bound (Minimization)</span></h1>
+        </div>
+        <div class="flex items-center space-x-4">
+            <div class="flex items-center space-x-2 bg-gray-100 p-1 rounded-lg">
+                <button id="btn-slow" class="px-3 py-1 rounded text-xs font-bold hover:bg-white shadow-sm transition speed-btn" onclick="setSpeed(1000)">Slow</button>
+                <button id="btn-normal" class="px-3 py-1 rounded text-xs font-bold bg-white shadow text-blue-600 speed-btn" onclick="setSpeed(200)">Normal</button>
+                <button id="btn-fast" class="px-3 py-1 rounded text-xs font-bold hover:bg-white shadow-sm transition speed-btn" onclick="setSpeed(10)">Fast</button>
+            </div>
+            <div class="h-6 w-px bg-gray-300"></div>
+            <button id="btn-step" class="bg-indigo-100 text-indigo-700 px-4 py-2 rounded-md font-semibold hover:bg-indigo-200 transition disabled:opacity-50" disabled>Step</button>
+            <button id="btn-run" class="bg-blue-600 text-white px-4 py-2 rounded-md font-semibold hover:bg-blue-700 transition shadow-sm" onclick="toggleRun()">Start Solver</button>
+            <button id="btn-reset" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-md font-semibold hover:bg-gray-300 transition" onclick="resetSolver()">Reset</button>
+        </div>
+    </header>
+
+    <div class="flex flex-1 overflow-hidden">
+        
+        <!-- Sidebar: Configuration & Status -->
+        <aside class="w-96 bg-white border-r border-gray-200 flex flex-col flex-shrink-0 shadow-lg z-10">
+            
+            <!-- Matrix Editor -->
+            <div class="p-6 border-b border-gray-200 overflow-y-auto max-h-[50vh]">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-sm font-bold text-gray-500 uppercase tracking-wider">Problem Setup</h2>
+                    <div class="text-xs text-gray-400">Click cells to toggle</div>
+                </div>
+
+                <div class="flex items-center justify-center space-x-2 mb-6">
+                    <div id="matrix-container" class="grid gap-1"></div>
+                    <div class="flex flex-col justify-center items-center h-full px-2">
+                        <span class="text-2xl text-gray-400">×</span>
+                    </div>
+                    <div class="flex flex-col gap-1 border-l-2 border-r-2 border-gray-300 px-2 py-1 rounded-lg">
+                        <!-- X Vector (Just Labels) -->
+                        <div id="x-labels" class="flex flex-col gap-1"></div>
+                    </div>
+                    <div class="flex flex-col justify-center items-center h-full px-2">
+                        <span class="text-2xl text-gray-400">=</span>
+                    </div>
+                    <div id="target-container" class="flex flex-col gap-1"></div>
+                </div>
+
+                <div class="flex justify-center space-x-2 text-xs">
+                    <button onclick="loadExample(1)" class="text-blue-500 hover:underline">Example 1</button>
+                    <span class="text-gray-300">|</span>
+                    <button onclick="loadExample(2)" class="text-blue-500 hover:underline">Example 2</button>
+                    <span class="text-gray-300">|</span>
+                    <button onclick="loadExample(3)" class="text-blue-500 hover:underline">Example 3</button>
+                </div>
+            </div>
+
+            <!-- Status Panel -->
+            <div class="p-6 bg-gray-50 flex-1 overflow-y-auto">
+                <h2 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-4">Solver State</h2>
+                
+                <div class="space-y-4">
+                    <div class="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                        <div class="text-xs text-gray-500 mb-1">Status</div>
+                        <div id="status-text" class="text-lg font-bold text-gray-800">Ready</div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                            <div class="text-xs text-gray-500 mb-1">Current Sum</div>
+                            <div id="current-sum" class="text-2xl font-mono font-bold text-blue-600">0</div>
+                        </div>
+                        <div class="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                            <div class="text-xs text-gray-500 mb-1">Best Sum</div>
+                            <div id="best-sum" class="text-2xl font-mono font-bold text-green-600">∞</div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                        <div class="text-xs text-gray-500 mb-1">Current Variable Check</div>
+                        <div id="current-op" class="text-sm font-mono text-gray-700 h-16 overflow-y-auto">
+                            Waiting to start...
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-4 rounded-lg border border-gray-200 shadow-sm hidden" id="solution-box">
+                        <div class="text-xs text-green-600 font-bold mb-1 uppercase">Best Solution Found</div>
+                        <div id="best-solution-vector" class="font-mono text-sm text-gray-800 break-all"></div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Visualization Area -->
+        <main class="flex-1 relative bg-gray-100 overflow-hidden flex flex-col">
+            <div class="absolute top-4 left-4 z-10 bg-white/80 backdrop-blur px-3 py-1 rounded text-xs text-gray-500 shadow-sm pointer-events-none">
+                Decision Tree (Depth = Variable Index)
+            </div>
+            
+            <div id="tree-container" class="flex-1 w-full h-full cursor-grab active:cursor-grabbing">
+                <!-- SVG/Divs for tree will be injected here -->
+                <div id="tree-canvas" class="relative w-[2000px] h-[2000px]"></div>
+            </div>
+
+            <!-- Legend -->
+            <div class="bg-white border-t border-gray-200 p-2 flex justify-center space-x-6 text-xs text-gray-600 flex-shrink-0 z-10">
+                <div class="flex items-center"><div class="w-3 h-3 rounded-full bg-yellow-400 border border-yellow-600 mr-2"></div> Active</div>
+                <div class="flex items-center"><div class="w-3 h-3 rounded-full bg-gray-200 border border-gray-400 mr-2"></div> Visited</div>
+                <div class="flex items-center"><div class="w-3 h-3 rounded-full bg-red-200 border border-red-500 mr-2"></div> Pruned (Too expensive)</div>
+                <div class="flex items-center"><div class="w-3 h-3 rounded-full bg-green-200 border border-green-500 mr-2"></div> Valid Solution</div>
+                <div class="flex items-center"><div class="w-3 h-3 rounded-full bg-emerald-500 border border-emerald-800 mr-2 shadow shadow-emerald-400"></div> Optimal</div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // --- Configuration & Data ---
+        let ROWS = 2;
+        let COLS = 3;
+        let matrix = [
+            [1, 0, 1],
+            [0, 1, 1]
+        ];
+        let target = [5, 10];
+        
+        // --- Solver State ---
+        let isRunning = false;
+        let isPaused = false;
+        let isStepMode = false;
+        let stepTrigger = null;
+        let speed = 200; // ms
+        let abortController = null;
+
+        // --- Visualization State ---
+        let treeNodes = [];
+        let treeLinks = [];
+        const NODE_WIDTH = 50;
+        const NODE_HEIGHT = 60;
+        const START_X = 500;
+        const START_Y = 50;
+
+        // --- Drag & Scroll Logic for Canvas ---
+        const treeContainer = document.getElementById('tree-container');
+        let isDown = false;
+        let startX, startY, scrollLeft, scrollTop;
+
+        treeContainer.addEventListener('mousedown', (e) => {
+            isDown = true;
+            treeContainer.classList.add('active');
+            startX = e.pageX - treeContainer.offsetLeft;
+            startY = e.pageY - treeContainer.offsetTop;
+            scrollLeft = treeContainer.scrollLeft;
+            scrollTop = treeContainer.scrollTop;
+        });
+
+        treeContainer.addEventListener('mouseleave', () => { isDown = false; });
+        treeContainer.addEventListener('mouseup', () => { isDown = false; });
+        treeContainer.addEventListener('mousemove', (e) => {
+            if (!isDown) return;
+            e.preventDefault();
+            const x = e.pageX - treeContainer.offsetLeft;
+            const y = e.pageY - treeContainer.offsetTop;
+            const walkX = (x - startX) * 1; 
+            const walkY = (y - startY) * 1;
+            treeContainer.scrollLeft = scrollLeft - walkX;
+            treeContainer.scrollTop = scrollTop - walkY;
+        });
+
+        // --- Initialization ---
+        function init() {
+            renderMatrixInputs();
+            resetVisuals();
+        }
+
+        function loadExample(id) {
+            resetSolver();
+            if (id === 1) {
+                ROWS = 2; COLS = 3;
+                matrix = [[1, 0, 1], [0, 1, 1]];
+                target = [5, 10];
+            } else if (id === 2) {
+                // Impossible case
+                ROWS = 2; COLS = 2;
+                matrix = [[1, 1], [1, 1]];
+                target = [5, 6];
+            } else if (id === 3) {
+                // Larger case
+                ROWS = 3; COLS = 4;
+                matrix = [
+                    [1, 0, 1, 0],
+                    [0, 1, 0, 1],
+                    [1, 1, 0, 0]
+                ];
+                target = [4, 4, 5];
+            }
+            renderMatrixInputs();
+        }
+
+        function renderMatrixInputs() {
+            const matContainer = document.getElementById('matrix-container');
+            const targetContainer = document.getElementById('target-container');
+            const xLabels = document.getElementById('x-labels');
+
+            matContainer.style.gridTemplateColumns = `repeat(${COLS}, minmax(0, 1fr))`;
+            
+            matContainer.innerHTML = '';
+            targetContainer.innerHTML = '';
+            xLabels.innerHTML = '';
+
+            // Render Matrix A
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    const cell = document.createElement('div');
+                    cell.className = `matrix-cell flex items-center justify-center font-mono ${matrix[r][c] ? 'one' : 'zero'}`;
+                    cell.innerText = matrix[r][c];
+                    cell.onclick = () => {
+                        if (isRunning) return;
+                        matrix[r][c] = matrix[r][c] === 1 ? 0 : 1;
+                        cell.className = `matrix-cell flex items-center justify-center font-mono ${matrix[r][c] ? 'one' : 'zero'}`;
+                        cell.innerText = matrix[r][c];
+                    };
+                    matContainer.appendChild(cell);
+                }
+            }
+
+            // Render Target b
+            for (let r = 0; r < ROWS; r++) {
+                const inp = document.createElement('input');
+                inp.type = 'number';
+                inp.value = target[r];
+                inp.className = "w-12 h-10 border border-gray-300 rounded text-center font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none";
+                inp.onchange = (e) => {
+                    if (isRunning) return;
+                    target[r] = parseInt(e.target.value) || 0;
+                };
+                targetContainer.appendChild(inp);
+            }
+
+            // Render X labels
+            for (let c = 0; c < COLS; c++) {
+                const lbl = document.createElement('div');
+                lbl.className = "h-10 flex items-center text-sm font-mono text-gray-600";
+                lbl.innerText = `x${c}`;
+                xLabels.appendChild(lbl);
+            }
+        }
+
+        // --- Visualizer Helpers ---
+        function createNode(id, x, y, label, value, parentId) {
+            const node = document.createElement('div');
+            node.id = `node-${id}`;
+            node.className = 'node bg-white';
+            node.style.left = `${x}px`;
+            node.style.top = `${y}px`;
+            node.innerHTML = `<div class="node-content"><span class="node-label">${label}</span><span class="node-val">${value}</span></div>`;
+            document.getElementById('tree-canvas').appendChild(node);
+            
+            if (parentId !== null) {
+                const parent = document.getElementById(`node-${parentId}`);
+                if (parent) {
+                    const pX = parseFloat(parent.style.left) + 18; // center
+                    const pY = parseFloat(parent.style.top) + 18;
+                    const cX = x + 18;
+                    const cY = y + 18;
+                    
+                    const length = Math.sqrt(Math.pow(cX - pX, 2) + Math.pow(cY - pY, 2));
+                    const angle = Math.atan2(cY - pY, cX - pX) * 180 / Math.PI;
+
+                    const link = document.createElement('div');
+                    link.className = 'link';
+                    link.style.width = `${length}px`;
+                    link.style.left = `${pX}px`;
+                    link.style.top = `${pY}px`;
+                    link.style.transform = `rotate(${angle}deg)`;
+                    link.id = `link-${parentId}-${id}`;
+                    document.getElementById('tree-canvas').appendChild(link);
+                    
+                    // Move node to front
+                    node.style.zIndex = 10;
+                }
+            }
+            return node;
+        }
+
+        function updateNodeStatus(id, status) {
+            const node = document.getElementById(`node-${id}`);
+            if (!node) return;
+            node.classList.remove('active', 'visited', 'pruned', 'solution', 'optimal');
+            node.classList.add(status);
+            
+            // Auto scroll to active node
+            if (status === 'active') {
+                const container = document.getElementById('tree-container');
+                const left = parseFloat(node.style.left);
+                const top = parseFloat(node.style.top);
+                // Simple centering logic
+                // container.scrollLeft = left - container.clientWidth / 2; 
+                // container.scrollTop = top - container.clientHeight / 2;
+            }
+        }
+
+        // --- Solver Logic ---
+
+        function setSpeed(ms) {
+            speed = ms;
+            document.querySelectorAll('.speed-btn').forEach(b => {
+                b.classList.remove('bg-white', 'text-blue-600', 'shadow');
+                b.classList.add('hover:bg-white');
+            });
+            if(ms === 1000) document.getElementById('btn-slow').classList.add('bg-white', 'text-blue-600', 'shadow');
+            else if(ms === 200) document.getElementById('btn-normal').classList.add('bg-white', 'text-blue-600', 'shadow');
+            else document.getElementById('btn-fast').classList.add('bg-white', 'text-blue-600', 'shadow');
+        }
+
+        function toggleRun() {
+            if (isRunning && !isPaused) {
+                // Pause
+                isPaused = true;
+                document.getElementById('btn-run').innerText = "Resume";
+                document.getElementById('btn-step').disabled = false;
+                document.getElementById('status-text').innerText = "Paused";
+            } else if (isRunning && isPaused) {
+                // Resume
+                isPaused = false;
+                document.getElementById('btn-run').innerText = "Pause";
+                document.getElementById('btn-step').disabled = true;
+                document.getElementById('status-text').innerText = "Running...";
+                if (stepTrigger) stepTrigger();
+            } else {
+                // Start
+                startSolver();
+            }
+        }
+
+        async function wait() {
+            if (!isRunning) return Promise.reject("Stopped");
+            if (isPaused) {
+                return new Promise(resolve => {
+                    stepTrigger = resolve;
+                });
+            }
+            return new Promise(resolve => setTimeout(resolve, speed));
+        }
+
+        function resetSolver() {
+            if (abortController) abortController.abort();
+            isRunning = false;
+            isPaused = false;
+            document.getElementById('btn-run').innerText = "Start Solver";
+            document.getElementById('btn-step').disabled = true;
+            document.getElementById('status-text').innerText = "Ready";
+            document.getElementById('current-sum').innerText = "0";
+            document.getElementById('best-sum').innerText = "∞";
+            document.getElementById('current-op').innerText = "Waiting...";
+            document.getElementById('solution-box').classList.add('hidden');
+            resetVisuals();
+        }
+
+        function resetVisuals() {
+            document.getElementById('tree-canvas').innerHTML = '';
+            // Center the "root" visually
+            treeContainer.scrollLeft = (2000 - treeContainer.clientWidth) / 2;
+        }
+
+        async function startSolver() {
+            isRunning = true;
+            isPaused = false;
+            document.getElementById('btn-run').innerText = "Pause";
+            document.getElementById('btn-step').disabled = true;
+            document.getElementById('status-text').innerText = "Running...";
+            document.getElementById('best-sum').innerText = "∞";
+            document.getElementById('solution-box').classList.add('hidden');
+            resetVisuals();
+
+            // Setup state
+            abortController = new AbortController();
+            const signal = abortController.signal;
+
+            let bestX = null;
+            let bestSum = Infinity;
+            
+            // Pre-calculate spacing for layout
+            // A simple layout: x grows with depth, y spreads based on siblings
+            // Actually, standard tree: y grows with depth (variable index), x spreads
+            
+            // We need a way to calculate X positions. 
+            // Simple approach: Each depth has a "next available x". 
+            // Better approach: Assign ranges. The root gets range [0, 2000].
+            
+            let nodeIdCounter = 0;
+
+            try {
+                
+                async function search(colIndex, currentTarget, currentSum, parentId, xRangeStart, xRangeEnd) {
+                    if (signal.aborted) return;
+
+                    const myId = nodeIdCounter++;
+                    const x = (xRangeStart + xRangeEnd) / 2;
+                    const y = 50 + (colIndex * 100);
+                    
+                    // Root node doesn't have a value yet really, but we denote it as start
+                    let label = colIndex < COLS ? `x${colIndex}=?` : "End";
+                    let valDisplay = "";
+                    
+                    // If this is a child, it represents a choice made for the PREVIOUS column (colIndex-1)
+                    // Wait, usually node represents state AFTER decision.
+                    // Let's say Node(level 0) is Root.
+                    // Node(level 1) is "x0 chosen as K".
+                    
+                    // Actually, let's visualize nodes as the choice made.
+                    // So root is "Start". 
+                    // Children of root are "x0=0", "x0=1"...
+                    
+                    // Adjustment: The recursive function is called *after* a choice or at start.
+                    // colIndex is the variable we are ABOUT to choose.
+                    
+                    // Let's visualize the node as the state passed INTO the function.
+                    // So the node represents "Decisions made so far".
+                    
+                    // 1. Check Pruning
+                    let isPruned = false;
+                    if (bestSum !== Infinity && currentSum >= bestSum) {
+                        isPruned = true;
+                    }
+                    
+                    // Determine parent logic
+                    // If parentId is null, this is root.
+                    // If not null, we just drew the line.
+
+                    // Check if Solution
+                    let isSolution = false;
+                    if (colIndex === COLS) {
+                        // Check targets
+                        const allZero = currentTarget.every(v => v === 0);
+                        if (allZero) {
+                            isSolution = true;
+                            if (currentSum < bestSum) {
+                                bestSum = currentSum;
+                                bestX = "Found (Hidden for recursion)"; // In real code we track vector
+                                document.getElementById('best-sum').innerText = bestSum;
+                                document.getElementById('status-text').innerText = "New Best Found!";
+                            }
+                        }
+                    }
+
+                    // UPDATE UI
+                    document.getElementById('current-sum').innerText = currentSum;
+                    document.getElementById('current-op').innerText = `Depth ${colIndex}. Target remaining: [${currentTarget.join(', ')}]`;
+                    
+                    // Wait for user or animation
+                    await wait();
+
+                    if (isPruned) {
+                        updateNodeStatus(parentId, 'pruned'); // Mark the edge/node leading here as pruned
+                        // Visualizing a separate node for "Pruned" state might be better
+                        // Actually, let's just mark the node we just entered as pruned.
+                         document.getElementById('status-text').innerText = "Pruning Branch (Sum >= Best)";
+                         // Create a leaf node to show we stopped
+                         const node = createNode(myId, x, y, "STOP", "≥Best", parentId);
+                         node.classList.add('pruned');
+                         return;
+                    }
+
+                    if (colIndex === COLS) {
+                        const node = createNode(myId, x, y, "Check", isSolution ? "Valid" : "Invalid", parentId);
+                        if (isSolution) {
+                            node.classList.add('optimal');
+                            // Trace back parents to highlight path?
+                            // Simplified for now
+                        } else {
+                            node.classList.add('pruned'); // Invalid solution
+                        }
+                        return;
+                    }
+
+                    // Create Node for "Deciding x" + colIndex
+                    // If we are at root, parentId is null.
+                    // If we are deep, the node represents the state.
+                    
+                    // Let's try to stick to: Node = Decision made.
+                    // So we don't create a node HERE. We create nodes in the loop below.
+                    // But we need a visual anchor for the lines.
+                    // Let's use the parentId as the anchor.
+                    
+                    // Wait, we need to show the max possible calculation.
+                    let maxVal = Infinity;
+                    let colHasOnes = false;
+
+                    for (let r = 0; r < ROWS; r++) {
+                        if (matrix[r][colIndex] === 1) {
+                            colHasOnes = true;
+                            if (currentTarget[r] < maxVal) maxVal = currentTarget[r];
+                        }
+                    }
+
+                    if (!colHasOnes) {
+                        // Coeff must be 0
+                        maxVal = 0;
+                    }
+
+                    // Loop loop
+                    // We iterate 0 to maxVal (Minimization prefers smaller numbers first usually, 
+                    // but the prompt logic used 0..max. We can stick to that).
+                    
+                    // Note on layout: We need to split the current xRange into (maxVal+1) slices.
+                    const widthPerChild = (xRangeEnd - xRangeStart) / (maxVal + 1);
+                    
+                    // We need a node to represent "Currently deciding x_colIndex".
+                    // If parentId is null (root), create a root node.
+                    let currentAnchorId = parentId;
+                    if (parentId === null) {
+                        const rootNode = createNode(myId, 1000, 50, "Start", "x0?", null); // Center of 2000
+                        rootNode.classList.add('active');
+                        currentAnchorId = myId;
+                    } 
+
+                    // Highlight the anchor
+                    updateNodeStatus(currentAnchorId, 'active');
+
+                    for (let k = 0; k <= maxVal; k++) {
+                        // Calc new target
+                        let nextTarget = [...currentTarget];
+                        let possible = true;
+                        for (let r = 0; r < ROWS; r++) {
+                            let val = currentTarget[r] - (k * matrix[r][colIndex]);
+                            if (val < 0) {
+                                possible = false;
+                                break;
+                            }
+                            nextTarget[r] = val;
+                        }
+
+                        if (possible) {
+                            // Create a node for this choice k
+                            const childId = nodeIdCounter++;
+                            const childX = xRangeStart + (k * widthPerChild) + (widthPerChild/2); // Center in slice
+                            const childY = 50 + ((colIndex + 1) * 100);
+                            
+                            const childNode = createNode(childId, childX, childY, `x${colIndex}`, k, currentAnchorId);
+                            
+                            // Recurse
+                            await search(colIndex + 1, nextTarget, currentSum + k, childId, xRangeStart + (k*widthPerChild), xRangeStart + ((k+1)*widthPerChild));
+                            
+                            // Backtrack visual
+                            childNode.classList.remove('active');
+                            childNode.classList.add('visited');
+                            updateNodeStatus(currentAnchorId, 'active');
+                        }
+                    }
+                    
+                    // Done with this level
+                    if (parentId === null) {
+                        // Finished entirely
+                        document.getElementById('status-text').innerText = bestSum === Infinity ? "No Solution" : "Optimal Found";
+                        isRunning = false;
+                        document.getElementById('btn-run').innerText = "Start Solver";
+                        
+                        // Highlight best path (Todo in v2: Store IDs of best path)
+                    }
+                }
+
+                await search(0, target, 0, null, 0, 2000); // 2000 is canvas width
+
+            } catch (e) {
+                if (e === "Stopped") console.log("Solver stopped");
+                else console.error(e);
+            }
+        }
+        
+        // --- Init ---
+        init();
+
+    </script>
+</body>
+</html>

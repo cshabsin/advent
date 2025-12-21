@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Integer Gaussian Elimination Demo</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+        .cell-enter { animation: highlight 0.5s ease-out; }
+        @keyframes highlight {
+            0% { transform: scale(1.1); background-color: #fef08a; }
+            100% { transform: scale(1); }
+        }
+        .matrix-bracket {
+            position: relative;
+        }
+        .matrix-bracket::before, .matrix-bracket::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 10px;
+            border: 2px solid #374151;
+        }
+        .matrix-bracket::before { left: -5px; border-right: none; }
+        .matrix-bracket::after { right: -5px; border-left: none; }
+        
+        /* Smooth transition for numbers */
+        .number-cell {
+            transition: all 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo, useRef } = React;
+
+        // --- SOLVER LOGIC THAT GENERATES TRACES ---
+        
+        const deepCopy = (arr) => JSON.parse(JSON.stringify(arr));
+
+        function generateTrace(origA, origB) {
+            const steps = [];
+            const rows = origA.length;
+            const cols = origA[0].length;
+            
+            let A = deepCopy(origA);
+            let b = deepCopy(origB);
+            let x = new Array(cols).fill(null);
+
+            const pushStep = (msg, type, activeRows = [], activeCol = -1, factor = null) => {
+                steps.push({
+                    A: deepCopy(A),
+                    b: deepCopy(b),
+                    x: deepCopy(x),
+                    msg,
+                    type, // 'info', 'pivot', 'calc', 'swap', 'error', 'success'
+                    activeRows,
+                    activeCol,
+                    factor
+                });
+            };
+
+            pushStep("Starting Integer Gaussian Elimination.", "info");
+
+            let pivotRow = 0;
+            const pivotMap = {};
+
+            // --- FORWARD ELIMINATION ---
+            for (let col = 0; col < cols && pivotRow < rows; col++) {
+                pushStep(`Phase 1: Forward Elimination - Column ${col}. Looking for a pivot (non-zero value) in rows ${pivotRow} to ${rows-1}.`, "info", [], col);
+
+                // Find non-zero
+                let sel = -1;
+                for (let i = pivotRow; i < rows; i++) {
+                    if (A[i][col] !== 0) {
+                        sel = i;
+                        break;
+                    }
+                }
+
+                if (sel === -1) {
+                    pushStep(`No pivot found in Column ${col}. All values below row ${pivotRow} are zero. This means x[${col}] is a free variable.`, "info", [], col);
+                    continue;
+                }
+
+                // Swap to pivot position
+                if (sel !== pivotRow) {
+                    [A[pivotRow], A[sel]] = [A[sel], A[pivotRow]];
+                    [b[pivotRow], b[sel]] = [b[sel], b[pivotRow]];
+                    pushStep(`Found pivot candidate ${A[pivotRow][col]} in Row ${sel}. Swapping with current row ${pivotRow}.`, "swap", [pivotRow, sel], col);
+                } else {
+                    pushStep(`Row ${pivotRow} already has a valid pivot ${A[pivotRow][col]}.`, "pivot", [pivotRow], col);
+                }
+
+                // Eliminate rows below
+                for (let i = pivotRow + 1; i < rows; i++) {
+                    if (A[i][col] === 0) continue;
+
+                    pushStep(`Eliminating value ${A[i][col]} in Row ${i} using pivot ${A[pivotRow][col]} from Row ${pivotRow}.`, "calc", [pivotRow, i], col);
+
+                    while (A[i][col] !== 0) {
+                        const factor = Math.floor(A[pivotRow][col] / A[i][col]);
+                        
+                        if (factor !== 0) {
+                            pushStep(`Euclidean Step: Reducing Row ${pivotRow} by ${factor} * Row ${i}.`, "calc", [pivotRow, i], col, factor);
+                            
+                            for (let j = col; j < cols; j++) {
+                                A[pivotRow][j] -= factor * A[i][j];
+                            }
+                            b[pivotRow] -= factor * b[i];
+                            
+                            pushStep(`Result: Pivot row value reduced to ${A[pivotRow][col]} (Remainder).`, "info", [pivotRow, i], col);
+                        }
+
+                        // Swap
+                        [A[pivotRow], A[i]] = [A[i], A[pivotRow]];
+                        [b[pivotRow], b[i]] = [b[i], b[pivotRow]];
+                        pushStep(`Swapping Row ${pivotRow} and Row ${i} to move the remainder to the target row.`, "swap", [pivotRow, i], col);
+                    }
+                    pushStep(`Row ${i} eliminated for Column ${col}.`, "success", [i], col);
+                }
+
+                pivotMap[pivotRow] = col;
+                pivotRow++;
+            }
+
+            // --- CONSISTENCY CHECK ---
+            pushStep("Phase 2: Consistency Check. Verifying that 0 = 0 for all zero-rows.", "info");
+            for (let i = pivotRow; i < rows; i++) {
+                if (b[i] !== 0) {
+                    pushStep(`Inconsistency found at Row ${i}: 0 = ${b[i]}. No Solution.`, "error", [i]);
+                    return steps;
+                } else {
+                    pushStep(`Row ${i} is consistent (0 = 0).`, "info", [i]);
+                }
+            }
+
+            // --- BACK SUBSTITUTION ---
+            x = new Array(cols).fill(0); // Initialize free vars to 0
+            pushStep("Phase 3: Back Substitution. Solving for variables from bottom to top.", "info");
+
+            for (let i = pivotRow - 1; i >= 0; i--) {
+                const pCol = pivotMap[i];
+                let sum = 0;
+                
+                pushStep(`Solving for x[${pCol}] using Row ${i}.`, "info", [i], pCol);
+
+                for (let j = pCol + 1; j < cols; j++) {
+                    sum += A[i][j] * x[j];
+                }
+
+                const rhs = b[i] - sum;
+                const divisor = A[i][pCol];
+
+                if (divisor === 0 || rhs % divisor !== 0) {
+                    pushStep(`Integer check failed: ${rhs} is not divisible by ${divisor}. No Integer Solution.`, "error", [i], pCol);
+                    return steps;
+                }
+
+                x[pCol] = rhs / divisor;
+                
+                pushStep(`Calculated x[${pCol}] = (${b[i]} - ${sum}) / ${divisor} = ${x[pCol]}`, "success", [i], pCol);
+            }
+            
+            pushStep("Solution Found!", "success");
+            return steps;
+        }
+
+
+        // --- COMPONENTS ---
+
+        const MatrixGrid = ({ data, activeRows, activeCol, type, label }) => {
+            if (!data || !data.length) return null;
+            return (
+                <div className="flex items-center mx-2">
+                    {label && <div className="mr-2 font-bold text-gray-500">{label}</div>}
+                    <div className="matrix-bracket p-2 grid gap-1" style={{ gridTemplateColumns: `repeat(${data[0].length}, minmax(40px, 1fr))` }}>
+                        {data.map((row, rIdx) => (
+                            row.map((val, cIdx) => {
+                                const isActiveRow = activeRows.includes(rIdx);
+                                const isPivotCol = cIdx === activeCol;
+                                let bgClass = "bg-white";
+                                
+                                if (isActiveRow) {
+                                    if (type === 'swap') bgClass = "bg-purple-100 border-purple-300";
+                                    else if (type === 'error') bgClass = "bg-red-100 border-red-300";
+                                    else if (type === 'success') bgClass = "bg-green-100 border-green-300";
+                                    else bgClass = "bg-blue-100 border-blue-300";
+                                }
+
+                                if (isActiveRow && isPivotCol) {
+                                     bgClass = "bg-yellow-200 border-yellow-400 font-bold scale-110";
+                                }
+
+                                return (
+                                    <div key={`${rIdx}-${cIdx}`} 
+                                         className={`number-cell h-10 w-12 flex items-center justify-center border rounded shadow-sm text-sm ${bgClass}`}>
+                                        {val}
+                                    </div>
+                                );
+                            })
+                        ))}
+                    </div>
+                </div>
+            );
+        };
+
+        const VectorCol = ({ data, activeRows, label, type, isResult }) => {
+            return (
+                <div className="flex items-center mx-2">
+                    {label && <div className="mr-2 font-bold text-gray-500">{label}</div>}
+                    <div className="matrix-bracket p-2 grid gap-1">
+                        {data.map((val, idx) => {
+                            const isActive = activeRows.includes(idx) && !isResult;
+                            let bgClass = "bg-white";
+                             if (isActive) {
+                                if (type === 'swap') bgClass = "bg-purple-100 border-purple-300";
+                                else if (type === 'error') bgClass = "bg-red-100 border-red-300";
+                                else bgClass = "bg-blue-100 border-blue-300";
+                            }
+                            if (isResult && val !== null) bgClass = "bg-green-50";
+
+                            return (
+                                <div key={idx} className={`number-cell h-10 w-12 flex items-center justify-center border rounded shadow-sm text-sm ${bgClass}`}>
+                                    {val === null ? '?' : val}
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            );
+        };
+
+        const App = () => {
+            const [inputA, setInputA] = useState([[2, 1], [1, 3]]);
+            const [inputB, setInputB] = useState([8, 14]);
+            const [trace, setTrace] = useState([]);
+            const [stepIndex, setStepIndex] = useState(0);
+            const [isPlaying, setIsPlaying] = useState(false);
+            const timerRef = useRef(null);
+
+            useEffect(() => {
+                const newTrace = generateTrace(inputA, inputB);
+                setTrace(newTrace);
+                setStepIndex(0);
+                setIsPlaying(false);
+            }, [inputA, inputB]);
+
+            useEffect(() => {
+                if (isPlaying) {
+                    timerRef.current = setInterval(() => {
+                        setStepIndex(prev => {
+                            if (prev < trace.length - 1) return prev + 1;
+                            setIsPlaying(false);
+                            return prev;
+                        });
+                    }, 1000);
+                } else {
+                    clearInterval(timerRef.current);
+                }
+                return () => clearInterval(timerRef.current);
+            }, [isPlaying, trace.length]);
+
+            const currentStep = trace[stepIndex] || { A: [], b: [], x: [], msg: "Loading...", activeRows: [], activeCol: -1 };
+
+            const handleMatrixChange = (r, c, val) => {
+                const newA = [...inputA];
+                newA[r] = [...newA[r]];
+                newA[r][c] = parseInt(val) || 0;
+                setInputA(newA);
+            };
+
+            const handleVectorChange = (r, val) => {
+                const newB = [...inputB];
+                newB[r] = parseInt(val) || 0;
+                setInputB(newB);
+            };
+
+            const resize = (rows, cols) => {
+                const newA = Array(rows).fill(0).map(() => Array(cols).fill(0));
+                const newB = Array(rows).fill(0);
+                for(let r=0; r<Math.min(rows, inputA.length); r++) {
+                    for(let c=0; c<Math.min(cols, inputA[0].length); c++) {
+                        newA[r][c] = inputA[r][c];
+                    }
+                    newB[r] = inputB[r];
+                }
+                setInputA(newA);
+                setInputB(newB);
+            };
+            
+            const loadExample = (type) => {
+                if(type === 'square') {
+                    setInputA([[2, 1], [1, 3]]);
+                    setInputB([8, 14]);
+                } else if (type === 'wide') {
+                    setInputA([[1, 2, 3], [2, -1, 1]]);
+                    setInputB([6, 2]);
+                } else if (type === 'tall') {
+                    setInputA([[1, 1], [1, -1], [2, 0]]);
+                    setInputB([5, 1, 6]);
+                } else if (type === 'fraction') {
+                    setInputA([[2]]);
+                    setInputB([3]);
+                }
+            };
+
+            const getProgressColor = () => {
+                if (!currentStep) return 'bg-gray-200';
+                if (currentStep.type === 'error') return 'bg-red-500';
+                if (currentStep.type === 'success') return 'bg-green-500';
+                return 'bg-blue-600';
+            };
+
+            return (
+                <div className="max-w-4xl mx-auto p-4 md:p-8">
+                    <div className="mb-8 text-center">
+                        <h1 className="text-3xl font-bold text-gray-800 mb-2">Integer-Only Matrix Solver</h1>
+                        <p className="text-gray-600">Visualizing the Euclidean Algorithm on Matrices</p>
+                    </div>
+
+                    <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
+                        <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
+                            <div className="flex space-x-2">
+                                <button onClick={() => loadExample('square')} className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded">Square (2x2)</button>
+                                <button onClick={() => loadExample('wide')} className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded">Wide (2x3)</button>
+                                <button onClick={() => loadExample('tall')} className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded">Tall (3x2)</button>
+                                <button onClick={() => loadExample('fraction')} className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded">No Int Sol</button>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <span className="text-sm font-semibold text-gray-500">Dimensions:</span>
+                                <input type="number" min="1" max="5" value={inputA.length} onChange={(e) => resize(parseInt(e.target.value), inputA[0].length)} className="w-12 border rounded px-1"/>
+                                <span>x</span>
+                                <input type="number" min="1" max="5" value={inputA[0].length} onChange={(e) => resize(inputA.length, parseInt(e.target.value))} className="w-12 border rounded px-1"/>
+                            </div>
+                        </div>
+
+                        <div className="flex flex-col md:flex-row items-center justify-center gap-4 mb-4 overflow-x-auto">
+                             <div className="flex items-center">
+                                <div className="matrix-bracket p-2 grid gap-1" style={{ gridTemplateColumns: `repeat(${inputA[0].length}, minmax(50px, 1fr))` }}>
+                                    {inputA.map((row, r) => row.map((val, c) => (
+                                        <input key={`${r}-${c}`} type="number" value={val} 
+                                            onChange={(e) => handleMatrixChange(r, c, e.target.value)}
+                                            className="w-12 h-10 text-center border rounded focus:ring-2 focus:ring-blue-500 outline-none" 
+                                        />
+                                    )))}
+                                </div>
+                            </div>
+                            <div className="text-2xl font-bold text-gray-400">x</div>
+                            <div className="text-2xl font-bold text-gray-400">=</div>
+                            <div className="flex items-center">
+                                <div className="matrix-bracket p-2 grid gap-1">
+                                    {inputB.map((val, r) => (
+                                        <input key={r} type="number" value={val} 
+                                            onChange={(e) => handleVectorChange(r, e.target.value)}
+                                            className="w-12 h-10 text-center border rounded focus:ring-2 focus:ring-blue-500 outline-none" 
+                                        />
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="bg-white rounded-xl shadow-lg p-6 min-h-[400px]">
+                        <div className="w-full bg-gray-200 rounded-full h-2 mb-6">
+                            <div className={`h-2 rounded-full transition-all duration-300 ${getProgressColor()}`} 
+                                 style={{ width: `${((stepIndex + 1) / trace.length) * 100}%` }}></div>
+                        </div>
+
+                        <div className="flex flex-col items-center justify-center min-h-[200px] mb-6">
+                            <div className="flex flex-wrap items-center justify-center gap-2 md:gap-8">
+                                <MatrixGrid 
+                                    label="A" 
+                                    data={currentStep.A} 
+                                    activeRows={currentStep.activeRows} 
+                                    activeCol={currentStep.activeCol}
+                                    type={currentStep.type}
+                                />
+                                <div className="text-2xl font-bold text-gray-300">×</div>
+                                <VectorCol 
+                                    label="x" 
+                                    data={currentStep.x} 
+                                    activeRows={[]}
+                                    type={currentStep.type}
+                                    isResult={true}
+                                />
+                                <div className="text-2xl font-bold text-gray-300">=</div>
+                                <VectorCol 
+                                    label="b" 
+                                    data={currentStep.b} 
+                                    activeRows={currentStep.activeRows}
+                                    type={currentStep.type}
+                                    isResult={false}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="bg-gray-50 rounded-lg p-4 mb-6 border-l-4 border-blue-500 min-h-[80px] flex items-center">
+                            <div>
+                                <h3 className="font-bold text-gray-700 text-sm uppercase tracking-wide mb-1">
+                                    Step {stepIndex + 1} of {trace.length}
+                                </h3>
+                                <p className="text-lg text-gray-800">
+                                    {currentStep.msg}
+                                </p>
+                                {currentStep.factor !== null && currentStep.factor !== undefined && (
+                                    <p className="text-sm text-gray-500 mt-1 font-mono">
+                                        Row operation factor: {currentStep.factor}
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="flex justify-center items-center space-x-4">
+                            <button 
+                                onClick={() => setStepIndex(0)}
+                                disabled={stepIndex === 0}
+                                className="p-2 rounded-full hover:bg-gray-100 disabled:opacity-30 transition">
+                                <i className="fas fa-step-backward text-gray-600"></i>
+                            </button>
+                            <button 
+                                onClick={() => setStepIndex(s => Math.max(0, s - 1))}
+                                disabled={stepIndex === 0}
+                                className="p-2 rounded-full hover:bg-gray-100 disabled:opacity-30 transition">
+                                <i className="fas fa-chevron-left text-gray-600"></i>
+                            </button>
+                            
+                            <button 
+                                onClick={() => setIsPlaying(!isPlaying)}
+                                className="w-12 h-12 flex items-center justify-center rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-lg transition transform hover:scale-105 active:scale-95">
+                                <i className={`fas ${isPlaying ? 'fa-pause' : 'fa-play'}`}></i>
+                            </button>
+
+                            <button 
+                                onClick={() => setStepIndex(s => Math.min(trace.length - 1, s + 1))}
+                                disabled={stepIndex === trace.length - 1}
+                                className="p-2 rounded-full hover:bg-gray-100 disabled:opacity-30 transition">
+                                <i className="fas fa-chevron-right text-gray-600"></i>
+                            </button>
+                            <button 
+                                onClick={() => setStepIndex(trace.length - 1)}
+                                disabled={stepIndex === trace.length - 1}
+                                className="p-2 rounded-full hover:bg-gray-100 disabled:opacity-30 transition">
+                                <i className="fas fa-step-forward text-gray-600"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
